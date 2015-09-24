@@ -1,0 +1,32 @@
+﻿@model StudentsToOrganization.Models.CreateResult
+@{
+    ViewBag.Title = "Result";
+}
+
+<h2>Result</h2>
+
+<div>
+    <h4>Result</h4>
+    <hr />
+    <dl class="dl-horizontal">
+        <dt>
+            @Html.DisplayNameFor(model => model.TeamName)
+        </dt>
+
+        <dd>
+            @Html.DisplayFor(model => model.TeamName)
+        </dd>
+
+        <dt>
+            @Html.DisplayNameFor(model => model.RepoName)
+        </dt>
+
+        <dd>
+            @Html.DisplayFor(model => model.RepoName)
+        </dd>
+
+    </dl>
+</div>
+<p>
+    @Html.ActionLink("Powrót", "Index")
+</p>
