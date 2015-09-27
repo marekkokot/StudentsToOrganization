@@ -9,12 +9,23 @@
 </head>
 <body>
 
-    <div>
-        @RenderBody()
+
+    <div class="MenuContainer">
+        <div>
+            <ul id="nav">
+                <li>@Html.ActionLink("Dodaj studenta", "Index")</li>
+                <li>@Html.ActionLink("Copy dir from repo to another", "RepoToRepo")</li>
+                <li>@Html.ActionLink("Create Issue", "CreateIssue")</li>
+            </ul>
+        </div>
+        <div class="mainContent">
+            @RenderBody()
+        </div>
     </div>
 
     @Scripts.Render("~/bundles/jquery")
     @Scripts.Render("~/bundles/bootstrap")
     @RenderSection("scripts", required: false)
+    <script src="~/scripts/menu.js"></script>
 </body>
 </html>

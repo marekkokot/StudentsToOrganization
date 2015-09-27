@@ -1,0 +1,10 @@
+﻿@{
+    ViewBag.Title = "RepoToRepoResult";
+}
+
+<h2>Log z kopiowania:</h2>
+
+@foreach (string item in ViewBag.log)
+{
+    @Html.Raw(@item)
+}

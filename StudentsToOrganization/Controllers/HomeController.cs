@@ -19,8 +19,14 @@ namespace StudentsToOrganization.Controllers
         private const string organization = "";
 
         //from https://github.com/organizations/{your organization name}/settings/applications/new
+        
+        //ppk.marekkokot.com
         const string clientId = "";
         private const string clientSecret = "";
+
+
+
+
 
         #endregion
 
@@ -49,9 +55,87 @@ namespace StudentsToOrganization.Controllers
                 suffix++;
             } while (existing_teams.Contains(res));
             return res;
-
+                
         }
 
+        public ActionResult RepoToRepo()
+        {            
+            var accessToken = Session["OAuthToken"] as string;
+            if (accessToken != null)
+            {
+                client.Credentials = new Credentials(accessToken);
+            }
+            else
+                return Redirect(GetOauthLoginUrl());
+
+            return View();
+        }
+
+        private void writeLogPart(int indent, List<string> log, string message)
+        {
+            string elem = "";
+            for (int i = 0; i < indent; ++i)
+                elem += "&nbsp;";
+
+            log.Add(elem + message + "<br \\>");
+        }
+
+        private async Task copyRepo(string src_repo, string dest_repo, string src_dir, string dest_dir, int indent, List<string> log)
+        {
+           
+            foreach (var item in await client.Repository.Content.GetAllContents(organization, src_repo, src_dir))
+            {
+                if (item.Type == ContentType.Dir)
+                    await copyRepo(src_repo, dest_repo, src_dir + "/" + item.Name, dest_dir + "/" + item.Name, indent + 3, log);
+                else
+                {
+                    try
+                    {
+                        var file = await client.Repository.Content.GetAllContents(organization, src_repo, src_dir + "/" + item.Name);
+                        writeLogPart(indent, log, "<span style='font-size:1.5em;'><span style='color:green;'>Copy</span><span style='color:gray;'> \"" + src_repo + "/" + src_dir + "/" + item.Name + "\"</span><span style='color:green;'> to </span><span style='color:gray;'>\"" + dest_repo + "/" + dest_dir + "\" </span></span>");
+                        await client.Repository.Content.CreateFile(organization, dest_repo, dest_dir + "/" + item.Name, new CreateFileRequest("Created By Teacher", file.First().Content));
+                    }
+                    catch(Exception ex)
+                    {
+                        writeLogPart(indent, log, "<span style='color:red'>Error: " + ex.ToString() + "</span>");
+                    }
+                }
+            }            
+        }
+
+        private async Task<List<string>> getAllReposForSection(string group_section)
+        {
+            var tmp = await client.Repository.GetAllForOrg(organization);
+            return (from c in tmp where c.Name.Contains(group_section) select c.Name).ToList();
+        }   
+
+        [HttpPost]
+        public async Task<ActionResult> RepoToRepo(CopyModel model)
+        {
+            var accessToken = Session["OAuthToken"] as string;
+            if (accessToken != null)
+            {
+                client.Credentials = new Credentials(accessToken);
+            }
+            else
+                return Redirect(GetOauthLoginUrl());
+
+            var repos = await getAllReposForSection("-gr" + model.Group + model.Section);
+            List<string> log = new List<string>();
+            foreach (var repo in repos)
+                try
+                {
+                    await copyRepo(model.SrcRepo, repo, model.SrcDir, model.DestDir, 0, log);
+                }
+                catch (Exception ex)
+                {
+                    log.Add("<span style='color:red'>Error: " + ex.ToString() + "</span>");
+                }
+
+            ViewBag.log = log;
+            return View("RepoToRepoResult");
+
+        }
 
         public async Task<ActionResult> Index()
         {
@@ -90,7 +174,7 @@ namespace StudentsToOrganization.Controllers
 
 
             CreateResult res = new CreateResult();
-            res.TeamName = student.FirstName + '-' + student.Surname + '-' + student.Group + student.Section;
+            res.TeamName = student.FirstName + '-' + student.Surname + "-gr" + student.Group + student.Section;
             res.TeamName = res.TeamName.RemoveDiacritics();
             try
             {
@@ -111,6 +195,44 @@ namespace StudentsToOrganization.Controllers
                 return Content(ex.ToString());
             }
             return View("CreateResult", res);
+        }
+
+
+        public ActionResult CreateIssue()
+        {
+            var accessToken = Session["OAuthToken"] as string;
+            if (accessToken != null)
+            {
+                client.Credentials = new Credentials(accessToken);
+            }
+            else
+                return Redirect(GetOauthLoginUrl());
+            return View();
+        }
+
+        [HttpPost]
+        public async Task<ActionResult> CreateIssue(CreateIssueModel model)
+        {
+            var accessToken = Session["OAuthToken"] as string;
+            if (accessToken != null)
+            {
+                client.Credentials = new Credentials(accessToken);
+            }
+            else
+                return Redirect(GetOauthLoginUrl());
+
+            var repos = await getAllReposForSection("-gr" + model.Group + model.Section);
+            ViewBag.Res = "Success";
+            try
+            {
+                foreach (var repo in repos)
+                    await client.Issue.Create(organization, repo, new NewIssue(model.Title) { Body = model.Content });
+            }
+            catch (Exception)
+            {
+                ViewBag.Res = "Some Error occured";
+            }
+            return View("CreateIssueResult");
         }
 
         public async Task<ActionResult> Authorize(string code, string state)
