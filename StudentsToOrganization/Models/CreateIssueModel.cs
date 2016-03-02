@@ -4,6 +4,7 @@ using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Web;
+using System.Web.Mvc;
 
 namespace StudentsToOrganization.Models
 {
@@ -18,10 +19,12 @@ namespace StudentsToOrganization.Models
         public int Section { get; set; }
 
         [DisplayName("Tytuł")]
+        [AllowHtml]
         [Required(ErrorMessage = "Pole {0} jest wymagane")]
         public string Title { get; set; }
 
-        [DisplayName("Treść")]       
+        [DisplayName("Treść")]
+        [AllowHtml]
         public string Content { get; set; }        
     }
 }
