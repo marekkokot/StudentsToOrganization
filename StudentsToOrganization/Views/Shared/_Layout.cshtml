@@ -6,6 +6,7 @@
     <title>@ViewBag.Title - Students Management</title>
     @Styles.Render("~/Content/css")
     @Scripts.Render("~/bundles/modernizr")
+    @RenderSection("AddToHead", required: false)
 </head>
 <body>
 
@@ -16,6 +17,7 @@
                 <li>@Html.ActionLink("Dodaj studenta", "Index")</li>
                 <li>@Html.ActionLink("Copy dir from repo to another", "RepoToRepo")</li>
                 <li>@Html.ActionLink("Create Issue", "CreateIssue")</li>
+                <li>@Html.ActionLink("Manage Repos", "ManageRepositories")</li>
             </ul>
         </div>
         <div class="mainContent">

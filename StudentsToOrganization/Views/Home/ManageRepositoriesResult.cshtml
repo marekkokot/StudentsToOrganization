@@ -1,0 +1,69 @@
+﻿@model List<StudentsToOrganization.Models.ManageModel>
+    @section AddToHead
+    {
+    <style>
+        table tbody tr:nth-child(odd) {
+            background: #CCC;
+        }
+
+        table tbody tr:nth-child(even) {
+            background: #FFF;
+        }
+    </style>
+
+
+    }
+    @section scripts
+    {
+    <script>
+        $(function () {
+            $("input[type=submit]").click(function (e) {
+                e.preventDefault();
+                $("form[name=ManageStudents]").attr("action", $(this).attr('name'));
+                $("form[name=ManageStudents]").submit();
+            });
+            $("input[name=selectAll]").click(function (e) {
+                $("input[name=selectedItems]").prop('checked', $(this).prop('checked'));
+            });
+        });
+    </script>
+    }
+    @{
+    ViewBag.Title = "ManageRepositoriesResult";
+    }
+    <form name="ManageStudents" method="post">
+        <table style="width:30%;">
+            <thead>
+                <tr>
+                    <th style="width:45px;">
+                        <input type="checkbox" name="selectAll" />                        
+                    </th>
+                    <th>Imię</th>
+                    <th>Nazwisko</th>
+                    <th style="width:30px;">Grupa</th>
+                    <th style="width:30px;">Sekcja</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                @foreach(var cm in @Model)
+                {
+                <tr>
+                    <td><input type="checkbox" name="selectedItems" value="@cm.TeamName" /></td>
+                    <td>@cm.Name</td>
+                    <td>@cm.Surname</td>
+                    <td>@cm.Group</td>
+                    <td>@cm.Section</td>
+                </tr>
+                }
+
+
+            </tbody>
+        </table>
+
+        <input style="margin-top:4px;" type="submit" name="/Home/RemoveStudents" value="Usuń zaznaczonych" class="btn btn-default" />
+        <input style="margin-top:4px;" type="submit" name="/Home/DownloadIssues" value="Pobierz issues" class="btn btn-default" />
+        <input style="margin-top:4px;" type="submit" name="/Home/GetCloneScript" value="Pobierz skrytp do sklonowania" class="btn btn-default" />
+    </form>
+
+

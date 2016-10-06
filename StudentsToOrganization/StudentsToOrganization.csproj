@@ -60,6 +60,7 @@
     <Reference Include="System" />
     <Reference Include="System.Data" />
     <Reference Include="System.Drawing" />
+    <Reference Include="System.Reflection.Context" />
     <Reference Include="System.Web.DynamicData" />
     <Reference Include="System.Web.Entity" />
     <Reference Include="System.Web.ApplicationServices" />
@@ -136,6 +137,8 @@
     <Compile Include="Models\CopyModel.cs" />
     <Compile Include="Models\CreateIssueModel.cs" />
     <Compile Include="Models\CreateResult.cs" />
+    <Compile Include="Models\ManageModel.cs" />
+    <Compile Include="Models\ManageReposModel.cs" />
     <Compile Include="Models\StudentData.cs" />
     <Compile Include="Other\Extensions.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -178,6 +181,9 @@
     <Content Include="Views\Home\RepoToRepoResult.cshtml" />
     <Content Include="Views\Home\CreateIssue.cshtml" />
     <Content Include="Views\Home\CreateIssueResult.cshtml" />
+    <Content Include="Views\Home\ManageRepositories.cshtml" />
+    <Content Include="Views\Home\ManageRepositoriesResult.cshtml" />
+    <Content Include="Views\Home\RemoveStudents.cshtml" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="App_Data\" />

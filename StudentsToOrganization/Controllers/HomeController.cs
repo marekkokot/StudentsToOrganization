@@ -8,34 +8,61 @@ using System.Web;
 using System.Web.Mvc;
 using System.Web.Security;
 using StudentsToOrganization.Other;
+using System.Reflection;
 
 namespace StudentsToOrganization.Controllers
 {
     public class HomeController : Controller
     {
-
         #region CONFIGURATION
         //your organization name here
-        private const string organization = "";
 
-        //from https://github.com/organizations/{your organization name}/settings/applications/new
-        
-        //ppk.marekkokot.com
-        const string clientId = "";
-        private const string clientSecret = "";
+      
 
-
-
-
+        const int expcetion_retries = 15;//octocit quite often throws exceptions...
 
         #endregion
 
         readonly GitHubClient client = new GitHubClient(new ProductHeaderValue("StudentsToOrganization"));
+        
+
+        private async Task run_with_retries(Func<Task> func, int n_retries)
+        {
+            bool was_exception = false;
+            Exception exc = null;
+            for (int i = 0; i < n_retries; ++i)
+            {
+                try
+                {
+                    await func();
+                    was_exception = false;
+                    break;
+                }
+                catch (AuthorizationException ex)
+                {
+                    throw ex;
+                }
+                catch (Exception ex)
+                {
+                    was_exception = true;
+                    exc = ex;
+                }
+            }
+            if (was_exception)
+                throw exc;
+        }
+
 
         private async Task<IEnumerable<string>> GetTeamsNames()
         {
             List<string> res = new List<string>();
-            var teams = await client.Organization.Team.GetAll(organization);
+            IReadOnlyList<Team> teams = null;// await client.Organization.Team.GetAll(organization);
+
+            await run_with_retries(async () =>
+            {
+                teams = await client.Organization.Team.GetAll(organization);
+            }, expcetion_retries);
+
             foreach (var t in teams)
                 res.Add(t.Name);
             return res;
@@ -55,11 +82,11 @@ namespace StudentsToOrganization.Controllers
                 suffix++;
             } while (existing_teams.Contains(res));
             return res;
-                
+
         }
 
         public ActionResult RepoToRepo()
-        {            
+        {
             var accessToken = Session["OAuthToken"] as string;
             if (accessToken != null)
             {
@@ -82,32 +109,56 @@ namespace StudentsToOrganization.Controllers
 
         private async Task copyRepo(string src_repo, string dest_repo, string src_dir, string dest_dir, int indent, List<string> log)
         {
-           
-            foreach (var item in await client.Repository.Content.GetAllContents(organization, src_repo, src_dir))
+            IReadOnlyList<RepositoryContent> contents = null;
+            await run_with_retries(async () =>
+            {
+                contents = await client.Repository.Content.GetAllContents(organization, src_repo, src_dir);
+            }, expcetion_retries);
+            //foreach (var item in await client.Repository.Content.GetAllContents(organization, src_repo, src_dir))
+            foreach (var item in contents)
             {
                 if (item.Type == ContentType.Dir)
-                    await copyRepo(src_repo, dest_repo, src_dir + "/" + item.Name, dest_dir + "/" + item.Name, indent + 3, log);
+                {
+                    //await copyRepo(src_repo, dest_repo, src_dir + "/" + item.Name, dest_dir + "/" + item.Name, indent + 3, log);
+                    await copyRepo(src_repo, dest_repo, src_dir + "/" + item.Name, dest_dir + "/" + item.Name, indent + 3, log);                    
+                }
                 else
                 {
                     try
                     {
-                        var file = await client.Repository.Content.GetAllContents(organization, src_repo, src_dir + "/" + item.Name);
+                        //var file = await client.Repository.Content.GetAllContents(organization, src_repo, src_dir + "/" + item.Name);
+                        IReadOnlyList<RepositoryContent> file = null;
+                        await run_with_retries(async () =>
+                        {
+                            file = await client.Repository.Content.GetAllContents(organization, src_repo, src_dir + "/" + item.Name);
+                        }, expcetion_retries);
                         writeLogPart(indent, log, "<span style='font-size:1.5em;'><span style='color:green;'>Copy</span><span style='color:gray;'> \"" + src_repo + "/" + src_dir + "/" + item.Name + "\"</span><span style='color:green;'> to </span><span style='color:gray;'>\"" + dest_repo + "/" + dest_dir + "\" </span></span>");
-                        await client.Repository.Content.CreateFile(organization, dest_repo, dest_dir + "/" + item.Name, new CreateFileRequest("Created By Teacher", file.First().Content));
+
+                        //await client.Repository.Content.CreateFile(organization, dest_repo, dest_dir + "/" + item.Name, new CreateFileRequest("Created By Teacher", file.First().Content));
+                        await run_with_retries(async () =>
+                        {
+                            await client.Repository.Content.CreateFile(organization, dest_repo, dest_dir + "/" + item.Name, new CreateFileRequest("Created By Teacher", file.First().Content));
+                        }, expcetion_retries);
                     }
-                    catch(Exception ex)
+                    catch (Exception ex)
                     {
                         writeLogPart(indent, log, "<span style='color:red'>Error: " + ex.ToString() + "</span>");
                     }
                 }
-            }            
+            }
         }
 
         private async Task<List<string>> getAllReposForSection(string group_section)
         {
-            var tmp = await client.Repository.GetAllForOrg(organization);
+            //var tmp = await client.Repository.GetAllForOrg(organization);
+            IReadOnlyList<Repository> tmp = null;
+            await run_with_retries(async () =>
+            {
+                tmp = await client.Repository.GetAllForOrg(organization);
+            }, expcetion_retries);
+            
             return (from c in tmp where c.Name.Contains(group_section) select c.Name).ToList();
-        }   
+        }
 
         [HttpPost]
         public async Task<ActionResult> RepoToRepo(CopyModel model)
@@ -120,11 +171,18 @@ namespace StudentsToOrganization.Controllers
             else
                 return Redirect(GetOauthLoginUrl());
 
-            var repos = await getAllReposForSection("-gr" + model.Group + model.Section);
+            //var repos = await getAllReposForSection("-gr" + model.Group + model.Section);
+            List<string> repos = null;
+            await run_with_retries(async () =>
+            {
+                repos = await getAllReposForSection("-gr" + model.Group + model.Section);
+            }, expcetion_retries);
+
             List<string> log = new List<string>();
             foreach (var repo in repos)
                 try
                 {
+                    //await copyRepo(model.SrcRepo, repo, model.SrcDir, model.DestDir, 0, log);
                     await copyRepo(model.SrcRepo, repo, model.SrcDir, model.DestDir, 0, log);
                 }
                 catch (Exception ex)
@@ -135,6 +193,239 @@ namespace StudentsToOrganization.Controllers
             ViewBag.log = log;
             return View("RepoToRepoResult");
 
+        }
+
+        private async Task RemoveFromOrganization(string[] to_remove)
+        {
+            //var teams = await client.Organization.Team.GetAll(organization);
+            IReadOnlyList<Team> teams = null;
+            await run_with_retries(async () =>
+            {
+                teams = await client.Organization.Team.GetAll(organization);
+            }, expcetion_retries);
+
+
+            //var current_user_login = (await client.User.Current()).Login;
+            string current_user_login = null;
+            await run_with_retries(async () =>
+            {
+                current_user_login = (await client.User.Current()).Login;
+            }, expcetion_retries);
+
+            foreach (var team in teams)
+            {
+                if (to_remove.Contains(team.Name))
+                {
+                    //var repos = await client.Organization.Team.GetAllRepositories(team.Id);
+                    IReadOnlyList<Repository> repos = null;
+                    await run_with_retries(async () =>
+                    {
+                        repos = await client.Organization.Team.GetAllRepositories(team.Id);
+                    }, expcetion_retries);
+
+                    foreach (var repo in repos)
+                    {
+                        //delete repo
+                        //await client.Repository.Delete(organization, repo.Name);
+                        await run_with_retries(async () =>
+                        {
+                            await client.Repository.Delete(organization, repo.Name);
+                        }, expcetion_retries);
+                    }
+                    //var members = await client.Organization.Team.GetAllMembers(team.Id);
+                    IReadOnlyList<Octokit.User> members = null;
+                    await run_with_retries(async () =>
+                    {
+                        members = await client.Organization.Team.GetAllMembers(team.Id);
+                    }, expcetion_retries);
+
+                    foreach (var member in members)
+                    {
+                        //delete member
+                        if (current_user_login != member.Login)
+                        {
+                            //await client.Organization.Member.Delete(organization, member.Login);
+                            await run_with_retries(async () =>
+                            {
+                                await client.Organization.Member.Delete(organization, member.Login);
+                            }, expcetion_retries);
+                        }
+                    }
+
+                    //delete team
+                    //await client.Organization.Team.Delete(team.Id);
+                    await run_with_retries(async () =>
+                    {
+                        await client.Organization.Team.Delete(team.Id);
+                    }, expcetion_retries);
+                }
+            }
+        }
+
+        [HttpPost]
+        public async Task<ActionResult> RemoveStudents(string[] selectedItems)
+        {
+            if (selectedItems == null)
+                return RedirectToAction("ManageRepositories");
+            var accessToken = Session["OAuthToken"] as string;
+            if (accessToken != null)
+            {
+                client.Credentials = new Credentials(accessToken);
+
+            }
+            else
+                return Redirect(GetOauthLoginUrl());
+
+            try
+            {
+                await RemoveFromOrganization(selectedItems);
+            }
+            catch (Exception ex)
+            {
+                return Content(ex.ToString());
+            }
+            return View();
+        }
+
+
+        private async Task<string> GetIssuesForTeams(string[] _teams)
+        {
+            if (_teams == null)
+                return "";
+            string res = "";
+            //var teams = await client.Organization.Team.GetAll(organization);
+            IReadOnlyList<Team> teams = null;
+            await run_with_retries(async () =>
+            {
+                teams = await client.Organization.Team.GetAll(organization);
+            }, expcetion_retries);
+            foreach (var team in teams)
+            {
+                if (_teams.Contains(team.Name))
+                {
+                    res += "**************************************************************************************************************************\n";
+                    res += "Issues for team: " + team.Name + "\n";
+                    //var repos = await client.Organization.Team.GetAllRepositories(team.Id);
+                    IReadOnlyList<Repository> repos = null;
+                    await run_with_retries(async () =>
+                    {
+                        repos = await client.Organization.Team.GetAllRepositories(team.Id);
+                    }, expcetion_retries);
+                    foreach (var repo in repos)
+                    {
+                        //var issues = await client.Issue.GetAllForRepository(organization, repo.Name);
+                        IReadOnlyList<Issue> issues = null;
+                        await run_with_retries(async () =>
+                        {
+                            issues = await client.Issue.GetAllForRepository(organization, repo.Name);
+                        }, expcetion_retries);                        
+                        foreach (var issue in issues)
+                        {
+                            res += "--------------------------------------------------------------------------------------------------------------------------\n";
+                            res += "Issue: " + issue.Number + "\n";
+                            res += "Created by: " + issue.User.Login + "\n";
+                            res += "Data utworzenia: " + issue.CreatedAt + "\n";
+                            res += "Tytuł:\n" + issue.Title + "\n";
+                            res += "Treść:\n:" + issue.Body + "\n";
+                            //var comments = await client.Issue.Comment.GetAllForIssue(organization, repo.Name, issue.Number);
+                            IReadOnlyList<IssueComment> comments = null;
+                            await run_with_retries(async () =>
+                            {
+                                comments = await client.Issue.Comment.GetAllForIssue(organization, repo.Name, issue.Number);
+                            }, expcetion_retries);
+                            res += "Komentarze: \n";
+                            foreach (var comment in comments)
+                            {
+                                res += "Id: " + comment.Id + "\n";
+                                res += "Data: " + comment.CreatedAt + "\n";
+                                res += "Autor: " + comment.User.Login + "\n";
+                                res += "Treść:\n" + comment.Body + "\n";
+                                res += "\n\n";
+                            }
+
+                        }
+                    }
+                }
+            }
+            return res;
+        }
+
+        private async Task<string> GetCloneScriptForTeams(string[] _teams)
+        {
+            if (_teams == null)
+                return "";
+            string res = "";
+            //var teams = await client.Organization.Team.GetAll(organization);
+            IReadOnlyList<Team> teams = null;
+            await run_with_retries(async () =>
+            {
+                teams = await client.Organization.Team.GetAll(organization);
+            }, expcetion_retries);
+
+            foreach (var team in teams)
+            {
+                if (_teams.Contains(team.Name))
+                {
+                    //var repos = await client.Organization.Team.GetAllRepositories(team.Id);
+                    IReadOnlyList<Repository> repos = null;
+                    await run_with_retries(async () =>
+                    {
+                        repos = await client.Organization.Team.GetAllRepositories(team.Id);
+                    }, expcetion_retries);
+                    foreach (var repo in repos)
+                    {
+                        res += "git clone " + repo.CloneUrl.Replace("https://", "https://" + Session["OAuthToken"] + "@") + "\n";
+                    }
+                }
+            }
+            return res;
+        }
+
+        [HttpPost]
+        public async Task<ActionResult> DownloadIssues(string[] selectedItems)
+        {
+            var accessToken = Session["OAuthToken"] as string;
+            if (accessToken != null)
+            {
+                client.Credentials = new Credentials(accessToken);
+            }
+            else
+                return Redirect(GetOauthLoginUrl());
+            var cd = new System.Net.Mime.ContentDisposition
+            {
+                FileName = "issues.txt",
+                Inline = false
+            };
+            Response.AppendHeader("Content-Disposition", cd.ToString());
+            string content = await GetIssuesForTeams(selectedItems);
+
+            byte[] res = new byte[content.Length * sizeof(char)];
+            System.Buffer.BlockCopy(content.ToCharArray(), 0, res, 0, content.Length * sizeof(char));
+            return File(res, System.Net.Mime.MediaTypeNames.Text.Plain);
+        }
+
+
+        [HttpPost]
+        public async Task<ActionResult> GetCloneScript(string[] selectedItems)
+        {
+            var accessToken = Session["OAuthToken"] as string;
+            if (accessToken != null)
+            {
+                client.Credentials = new Credentials(accessToken);
+            }
+            else
+                return Redirect(GetOauthLoginUrl());
+            var cd = new System.Net.Mime.ContentDisposition
+            {
+                FileName = "clone.sh",
+                Inline = false
+            };
+            Response.AppendHeader("Content-Disposition", cd.ToString());
+            string content = await GetCloneScriptForTeams(selectedItems);
+
+            byte[] res = new byte[content.Length * sizeof(char)];
+            System.Buffer.BlockCopy(content.ToCharArray(), 0, res, 0, content.Length * sizeof(char));
+            return File(res, System.Net.Mime.MediaTypeNames.Text.Plain);
         }
 
         public async Task<ActionResult> Index()
@@ -149,13 +440,22 @@ namespace StudentsToOrganization.Controllers
 
             try
             {
-                var repositories = await client.Repository.GetAllForCurrent();
+                //var repositories = await client.Repository.GetAllForCurrent();
+                IReadOnlyList<Repository> repositories = null;
+                await run_with_retries(async () =>
+                {
+                    repositories = await client.Repository.GetAllForCurrent();
+                }, expcetion_retries);
                 return View();
             }
             catch (AuthorizationException)
             {
                 return Redirect(GetOauthLoginUrl());
             }
+            //catch (Exception)
+            //{
+            //    return Redirect(GetOauthLoginUrl());
+            //}
         }
 
         [HttpPost]
@@ -182,13 +482,105 @@ namespace StudentsToOrganization.Controllers
 
                 res.RepoName = res.TeamName + "-repo";
 
-                var team_id = await client.Organization.Team.Create(organization, new NewTeam(res.TeamName) { Permission = Permission.Push });
-                await client.Organization.Team.AddMembership(team_id.Id, student.GitLogin);
-                await client.Repository.Create(organization, new NewRepository(res.RepoName) { Private = true, AutoInit = true, GitignoreTemplate = "VisualStudio", TeamId = team_id.Id });
+                //var team_id = await client.Organization.Team.Create(organization, new NewTeam(res.TeamName) { Permission = Permission.Push });
+                Team team_id = null;
+                await run_with_retries(async () =>
+                {
+                    team_id = await client.Organization.Team.Create(organization, new NewTeam(res.TeamName) { Permission = Permission.Push });
+                }, expcetion_retries);
+                //await client.Organization.Team.AddMembership(team_id.Id, student.GitLogin);
+                await run_with_retries(async () =>
+                {
+                    await client.Organization.Team.AddMembership(team_id.Id, student.GitLogin);
+                }, expcetion_retries);
 
-                await client.Repository.Content.CreateFile(organization, res.RepoName, "laboratorium/README.md", new CreateFileRequest("Wprowadzenie", "Tutaj umieszczać zajęcia laboratoryjne"));
-                await client.Repository.Content.CreateFile(organization, res.RepoName, "projekt 1/README.md", new CreateFileRequest("Wprowadzenie", "Tutaj umieszczać projekt 1"));
-                await client.Repository.Content.CreateFile(organization, res.RepoName, "projekt 2/README.md", new CreateFileRequest("Wprowadzenie", "Tutaj umieszczać projekt 2"));
+                //await client.Repository.Create(organization, new NewRepository(res.RepoName) { Private = true, AutoInit = true, GitignoreTemplate = "VisualStudio", TeamId = team_id.Id });
+
+                await run_with_retries(async () =>
+                {
+                    await client.Repository.Create(organization, new NewRepository(res.RepoName) { Private = true, AutoInit = true, GitignoreTemplate = "VisualStudio", TeamId = team_id.Id });
+                }, expcetion_retries);
+
+                //ppk inf
+                //for (int i = 1; i <= 14; ++i)
+                //{
+                //    string nr = i.ToString();
+                //    if (i < 10)
+                //        nr = "0" + nr;
+                //    
+                //      await run_with_retries(async () =>
+                //      {
+                //          await client.Repository.Content.CreateFile(organization, res.RepoName, "Temat " + nr + "/README.md", new CreateFileRequest("Wprowadzenie", "Tutaj umieszczać pliki związane z tematem " + i.ToString()));
+                //      }, expcetion_retries);
+                //}               
+                //await run_with_retries(async () =>
+                //{
+                //    await client.Repository.Content.CreateFile(organization, res.RepoName, "Student/README.md", new CreateFileRequest("Wprowadzenie", "Tutaj można umieszczać pliki nie związane z projektem ani laboratorium. Jest to swego rodzaju brudnopis"));
+                //}, expcetion_retries);
+                //await run_with_retries(async () =>
+                //{
+                //    await client.Repository.Content.CreateFile(organization, res.RepoName, "projekt 1/README.md", new CreateFileRequest("Wprowadzenie", "Tutaj umieszczać projekt 1"));
+                //}, expcetion_retries);
+                //await run_with_retries(async () =>
+                //{
+                //    await client.Repository.Content.CreateFile(organization, res.RepoName, "projekt 2/README.md", new CreateFileRequest("Wprowadzenie", "Tutaj umieszczać projekt 2"));
+                //}, expcetion_retries);
+                
+
+
+
+                //pk2 ??
+                //await run_with_retries(async () =>
+                //{
+                //  await client.Repository.Content.CreateFile(organization, res.RepoName, "lab1/README.md", new CreateFileRequest("Wprowadzenie", "Tutaj umieszczać zajęcia laboratoryjne nr 1"));
+                //}, expcetion_retries);
+                //await run_with_retries(async () =>
+                //{
+                //  await client.Repository.Content.CreateFile(organization, res.RepoName, "lab2/README.md", new CreateFileRequest("Wprowadzenie", "Tutaj umieszczać zajęcia laboratoryjne nr 2"));
+                //}, expcetion_retries);
+                //await run_with_retries(async () =>
+                //{
+                //  await client.Repository.Content.CreateFile(organization, res.RepoName, "lab3/README.md", new CreateFileRequest("Wprowadzenie", "Tutaj umieszczać zajęcia laboratoryjne nr 3"));
+                //}, expcetion_retries);
+                //await run_with_retries(async () =>
+                //{
+                //  await client.Repository.Content.CreateFile(organization, res.RepoName, "lab4/README.md", new CreateFileRequest("Wprowadzenie", "Tutaj umieszczać zajęcia laboratoryjne nr 4"));
+                //}, expcetion_retries);
+                //await run_with_retries(async () =>
+                //{
+                //  await client.Repository.Content.CreateFile(organization, res.RepoName, "lab5/README.md", new CreateFileRequest("Wprowadzenie", "Tutaj umieszczać zajęcia laboratoryjne nr 5"));
+                //}, expcetion_retries);
+                //await run_with_retries(async () =>
+                //{
+                //  await client.Repository.Content.CreateFile(organization, res.RepoName, "laboratorium/README.md", new CreateFileRequest("Wprowadzenie", "Tutaj umieszczać zajęcia laboratoryjne"));
+                //}, expcetion_retries);
+
+
+                //ppk tele
+                //await run_with_retries(async () =>
+                //{
+                //  await client.Repository.Content.CreateFile(organization, res.RepoName, "Laboratorium/README.md", new CreateFileRequest("Wprowadzenie", "Tutaj umieszczać zajęcia laboratoryjne"));
+                //}, expcetion_retries);
+                //await run_with_retries(async () =>
+                //{
+                //  await client.Repository.Content.CreateFile(organization, res.RepoName, "Projekt/README.md", new CreateFileRequest("Wprowadzenie", "Tutaj umieszczać projekt"));
+                //}, expcetion_retries);
+
+                //pk3
+                await run_with_retries(async () =>
+                {
+                    await client.Repository.Content.CreateFile(organization, res.RepoName, "Laboratorium/README.md", new CreateFileRequest("Wprowadzenie", "Tutaj umieszczać zajęcia laboratoryjne"));
+                }, expcetion_retries);
+                await run_with_retries(async () =>
+                {
+                    await client.Repository.Content.CreateFile(organization, res.RepoName, "Projekt/README.md", new CreateFileRequest("Wprowadzenie", "Tutaj umieszczać projekt"));
+                }, expcetion_retries);
+                await run_with_retries(async () =>
+                {
+                    await client.Repository.Content.CreateFile(organization, res.RepoName, "Student/README.md", new CreateFileRequest("Wprowadzenie", "Tutaj można umieszczać pliki nie związane z projektem ani laboratorium. Jest to swego rodzaju brudnopis"));
+                }, expcetion_retries);
+
+
             }
             catch (Exception ex)
             {
@@ -197,6 +589,94 @@ namespace StudentsToOrganization.Controllers
             return View("CreateResult", res);
         }
 
+        public ActionResult ManageRepositories()
+        {
+            var accessToken = Session["OAuthToken"] as string;
+            if (accessToken != null)
+            {
+                client.Credentials = new Credentials(accessToken);
+            }
+            else
+                return Redirect(GetOauthLoginUrl());
+            return View();
+        }
+
+        [HttpPost]
+        public async Task<ActionResult> ManageRepositories(ManageReposModel model)
+        {
+            var accessToken = Session["OAuthToken"] as string;
+            if (accessToken != null)
+            {
+                client.Credentials = new Credentials(accessToken);
+            }
+            else
+                return Redirect(GetOauthLoginUrl());
+            
+            try
+            {
+
+                string pattern = "";
+                if (model.FirstName != null)
+                    pattern += model.FirstName;
+                else
+                    pattern += ".*";
+                pattern += "-";
+                if (model.Surname != null)
+                    pattern += model.Surname;
+                else
+                    pattern += ".*";
+                pattern += "-gr";
+                if (model.Group != null)
+                    pattern += model.Group.ToString();
+                else
+                    pattern += ".";
+                if (model.Section != null)
+                    pattern += model.Section.ToString();
+                else
+                    pattern += ".";
+
+                pattern += "-repo";
+
+                List<ManageModel> res = new List<ManageModel>();
+
+                //var tmp = await client.Repository.GetAllForOrg(organization);
+                IReadOnlyList<Repository> tmp = null;
+                await run_with_retries(async () =>
+                {
+                    tmp = await client.Repository.GetAllForOrg(organization);
+                }, expcetion_retries);
+
+                foreach (var v in tmp)
+                {
+                    if (v.Name.Count(x => x == '-') != 3)
+                        continue;
+                    if (System.Text.RegularExpressions.Regex.Match(v.FullName, pattern).Success)
+                    {
+                        string clone_url_oauth = v.CloneUrl.Replace("https://", "https://" + Session["OAuthToken"] + "@");
+                        var splitted = v.Name.Split('-');
+                        var team = v.Name.Replace("-repo", "");
+
+                        res.Add(new ManageModel
+                        {
+                            CloneUrl = clone_url_oauth,
+                            Name = splitted[0],
+                            Surname = splitted[1],
+                            Group = int.Parse(splitted[2].Substring(2, 1)),
+                            Section = int.Parse(splitted[2].Substring(3, 1)),
+                            TeamName = team
+                        });
+                    }
+                }
+                //return View("Index");                
+                return View("ManageRepositoriesResult", res);
+            }
+            catch (System.Exception ex)
+            {
+                return Content(ex.ToString());
+            }
+
+            
+        }
 
         public ActionResult CreateIssue()
         {
@@ -209,6 +689,7 @@ namespace StudentsToOrganization.Controllers
                 return Redirect(GetOauthLoginUrl());
             return View();
         }
+
 
         [HttpPost]
         public async Task<ActionResult> CreateIssue(CreateIssueModel model)
@@ -226,7 +707,13 @@ namespace StudentsToOrganization.Controllers
             try
             {
                 foreach (var repo in repos)
-                    await client.Issue.Create(organization, repo, new NewIssue(model.Title) { Body = model.Content });
+                {
+                    //await client.Issue.Create(organization, repo, new NewIssue(model.Title) { Body = model.Content });
+                    await run_with_retries(async () =>
+                    {
+                        await client.Issue.Create(organization, repo, new NewIssue(model.Title) { Body = model.Content });
+                    }, expcetion_retries);
+                }
             }
             catch (Exception)
             {
@@ -255,10 +742,10 @@ namespace StudentsToOrganization.Controllers
         {
             string csrf = Membership.GeneratePassword(24, 1);
             Session["CSRF:State"] = csrf;
-            
+
             var request = new OauthLoginRequest(clientId)
             {
-                Scopes = { "user", "notifications", "admin:org", "repo" },
+                Scopes = { "user", "notifications", "admin:org", "repo", "delete_repo" },
                 State = csrf
             };
             var oauthLoginUrl = client.Oauth.GetGitHubLoginUrl(request);
