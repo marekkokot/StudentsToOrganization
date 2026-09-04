@@ -410,6 +410,19 @@ namespace StudentsToOrganization.Controllers
 
                     foreach (var member in members)
                     {
+                        if (current_user_login == member.Login)
+                            continue;
+
+                        // Never auto-remove org owners/admins.
+                        bool isAdmin = false;
+                        await run_with_retries(async () =>
+                        {
+                            var m = await client.Organization.Member.GetOrganizationMembership(organization, member.Login);
+                            isAdmin = (m.Role.Value == MembershipRole.Admin);
+                        }, expcetion_retries);
+                        if (isAdmin)
+                            continue;
+
                         //delete member
                         using (var dbContext = new GithubDataEntities())
                         {
@@ -417,14 +430,13 @@ namespace StudentsToOrganization.Controllers
                             if (r > 1) //if user belongs to more than one team do not remove him/her from organization
                                 continue;
                         }
-                        if (current_user_login != member.Login)
+
+                        //await client.Organization.Member.Delete(organization, member.Login);
+                        await run_with_retries(async () =>
                         {
-                            //await client.Organization.Member.Delete(organization, member.Login);
-                            await run_with_retries(async () =>
-                            {
-                                await client.Organization.Member.Delete(organization, member.Login);
-                            }, expcetion_retries);
-                        }
+                            await client.Organization.Member.Delete(organization, member.Login);
+                        }, expcetion_retries);
+
                     }
 
                     //delete team
