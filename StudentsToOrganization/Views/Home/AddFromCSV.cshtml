@@ -1,0 +1,28 @@
+@{
+    ViewBag.Title = "Dodawanie wielu studentów z pliku CSV";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+<h2>Tworzy wiele repozytoriów dla studentów na podstawie pliku CSV</h2>
+<div>W każdym wierszu pliku oddzielone przecinkami (lub średnikami) następujące wartości</div>
+<div>
+    <ul style="margin-left: 30px;">
+        <li>Login studenta na github</li>
+        <li>Imię studenta</li>
+        <li>Nazwisko studenta</li>
+        <li>Grupa ∈ [0, 9] </li>
+        <li>Sekcja ∈ [0, 9] </li>
+    </ul>
+</div>
+
+<h3>Przykładowa zawartość pliku:</h3>
+<div style="border:1px solid black;display:inline-block;">
+    <div>grzesiu91;Grzegorz;Brzęczyszczykiewicz;1;1</div>
+    <div>adas781;Adam;Mickiewicz;1;2</div>
+    <div>agent007;James;Bond;2;2</div>
+</div>
+<br />
+@using (Html.BeginForm("AddFromCSV", "Home", FormMethod.Post, new { enctype = "multipart/form-data" }))
+{
+    <input type="file" name="csvFile" class="btn btn-default" />
+    <input type="submit" value="DODAJ" class="btn btn-default" />
+}

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
@@ -26,13 +26,13 @@ namespace StudentsToOrganization.Models
         public string Surname { get; set; }
 
         [Required(ErrorMessage = "Pole {0} jest wymagane")]
-        [Range(1, 9)]
-        [DisplayName("Grupa")]
+        [Range(0, 9)]
+        [DisplayName("Grupa*")]
         public int Group { get; set; }
 
-        [Range(1, 9)]
+        [Range(0, 9)]
         [Required(ErrorMessage = "Pole {0} jest wymagane")]
-        [DisplayName("Sekcja")]
+        [DisplayName("Sekcja*")]
         public int Section { get; set; }
     }
 }

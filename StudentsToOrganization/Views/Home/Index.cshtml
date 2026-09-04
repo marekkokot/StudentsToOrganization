@@ -1,36 +1,78 @@
-﻿@model StudentsToOrganization.Models.StudentData
+@model StudentsToOrganization.Models.StudentData
 
 @{
     ViewBag.Title = "Dodawanie studenta";
 }
-<div style="border:2px dashed black;padding:5px 10px;left:45%;position:absolute;font-size:1.2em;width:40%; text-align:justify; background-color: azure;">
+@*<div style="border:2px dashed black;padding:5px 10px;left:45%;position:absolute;font-size:1.2em;width:40%; text-align:justify; background-color: azure;">
     <h2>Prośba do prowadzących</h2>
     <div style="border:1px dashed black;background-color: aquamarine;padding:5px;">
-        <span style="font-size: 1.1em;">Po utworzeniu konta za pomocą niniejszego formularza proszę o <b>nie</b> zmienianie nazwy repozytorium ani teamu z poziomu github.com.</span>
+        <span style="font-size: 1.1em;">Po utworzeniu konta za pomocą niniejszego formularza proszę o <b>nie</b>zmienianie nazwy repozytorium ani teamu z poziomu github.com.</span>
     </div>
     <br />
     Uzasadnione jest to tym, że w celu poprawnego zarządzania repozytoriami przez stronę www (w szególności archiwizowanie i usuwanie repozytoriów po zakończeniu semestru) konieczne jest spełnienie wymogów co do nazwy teamu i repozytorium.
     <br />
     <br />
-    W przypadku konieczności zmiany nazwy (bo przykładowo student jest jednak w innej sekcji bądź grupie bądź pojawił się błąd w jego imieniu/nazwisku) proszę o zgłoszenie takiej informacji mailowo:
-    <a href="mailto:marek.kokot@poczta.polsl.pl">marek.kokot@poczta.polsl.pl</a> 
+    W przypadku konieczności zmiany nazwy (bo przykładowo student jest jednak w innej sekcji bądź pojawił się błąd w jego imieniu/nazwisku) proszę o zgłoszenie takiej informacji mailowo:
+    <a href="mailto:marek.kokot@poczta.polsl.pl">marek.kokot@polsl.pl</a> 
     <br />
     <br />
     <span style="font-size: 1em">
-        Zasady nazwenictwa teamów i repozytoriów są kolejno następujące: <br />
-        <span style="font-family:Consolas;">&ltImie&gt-&ltNazwisko&gt-gr&ltGrupa&gt&ltSekcja&gt</span> <br />
-        <span style="font-family:Consolas;">&ltImie&gt-&ltNazwisko&gt-gr&ltGrupa&gt&ltSekcja&gt-repo</span> <br />
-        Przykładowo, dla studenta <a href="https://www.youtube.com/watch?v=AfKZclMWS1U">Grzegorza Brzęczyszczykiewicza</a>, który jest w grupie 3, sekcji 2 zostanie utworzone: <br />
-        <span style="font-family:Consolas;">Grzegorz-Brzeczyszczykiewicz-gr32</span> <br />
-        <span style="font-family:Consolas;">Grzegorz-Brzeczyszczykiewicz-gr32-repo</span> <br />
+        Zasady nazewnictwa teamów i repozytoriów są kolejno następujące: <br />
+        <span style="font-family:Consolas;">&ltImie&gt-&ltNazwisko&gt-gr&ltCyfra1&gt&ltCyfra2&gt</span> <br />
+        <span style="font-family:Consolas;">&ltImie&gt-&ltNazwisko&gt-gr&ltCyfra1&gt&ltCyfra2&gt-repo</span> <br />
+
+        Przykładowo, dla studenta <a href="https://www.youtube.com/watch?v=AfKZclMWS1U">Grzegorza Brzęczyszczykiewicza</a>, który jest w sekcji 2 zostanie utworzone: <br />
+        <span style="font-family:Consolas;">Grzegorz-Brzeczyszczykiewicz-gr02</span> <br />
+        <span style="font-family:Consolas;">Grzegorz-Brzeczyszczykiewicz-gr02-repo</span> <br />
+
         Zwracam uwagę, że polskie ogonki zostają usunięte, gdyż github nie obsługuje prawidłowo polskich znaków w nazwach repo i teamów. <br />
-        Zamiast zgłaszania konieczności zmiany nazwy można zrobić to ręcznie, ale proszę o zachowanie zasad nazwenictwa i spójności nazwy repozytorium i teamu.
+        
+        Zamiast zgłaszania konieczności zmiany nazwy można zrobić to ręcznie, ale proszę o zachowanie zasad nazewnictwa i spójności nazwy repozytorium i teamu.
         <br />
-        Przykładowo jeśli nasz hipotetycznych Grzegorz bardzo chce być jednak w sekcji pierwszej i wyrażamy na to zgodę, nazwy jego teamu i repozytium powinny się zmienić na: <br />
-        <span style="font-family:Consolas;">Grzegorz-Brzeczyszczykiewicz-gr3<b>1</b></span> <br />
-        <span style="font-family:Consolas;">Grzegorz-Brzeczyszczykiewicz-gr3<b>1</b>-repo</span> <br />
+        Przykładowo jeśli nasz hipotetycznych Grzegorz bardzo chce być jednak w sekcji 12 i wyrażamy na to zgodę, nazwy jego teamu i repozytium powinny się zmienić na: <br />
+        <span style="font-family:Consolas;">Grzegorz-Brzeczyszczykiewicz-gr<b>1</b>2</span> <br />
+        <span style="font-family:Consolas;">Grzegorz-Brzeczyszczykiewicz-gr<b>1</b>2-repo</span> <br />
 </span>
+
+</div>*@
+
+<div style="border:2px dashed black;padding:5px 10px;left:45%;position:absolute;font-size:1.2em;width:40%; text-align:justify; background-color: azure;">
+    <h2>Prośba do prowadzących</h2>
+    <div style="border:1px dashed black;background-color: aquamarine;padding:5px;">
+        <span style="font-size: 1.1em;">Po utworzeniu konta za pomocą niniejszego formularza proszę o <b>nie</b>zmienianie nazwy repozytorium ani teamu z poziomu github.com.</span>
+    </div>
+    <br />
+    Uzasadnione jest to tym, że w celu poprawnego zarządzania repozytoriami przez stronę www (w szególności archiwizowanie i usuwanie repozytoriów po zakończeniu semestru) konieczne jest spełnienie wymogów co do nazwy teamu i repozytorium.
+    <br />
+    <br />
+    W przypadku konieczności zmiany nazwy (bo przykładowo student jest jednak w innej sekcji) proszę o zgłoszenie takiej informacji mailowo:
+    <a href="mailto:marek.kokot@poczta.polsl.pl">marek.kokot@polsl.pl</a>
+    <br />
+    <br />
+    <span style="font-size: 1em">
+        Od semstru zimowego roku akademickiego 2018/19 zmienia się nazewnictwo repozytoriów.
+        Dotychczasowe Imię i Nazwisko zastąpione zostaje losowym ciągiem znaków.      
+        Zasady nazewnictwa teamów i repozytoriów są kolejno następujące: <br />
+        <span style="font-family:Consolas;">&ltLosowyCiąg&gt-gr&ltCyfra1&gt&ltCyfra2&gt</span> <br />
+        <span style="font-family:Consolas;">&ltLosowyCiąg&gt-gr&ltCyfra1&gt&ltCyfra2&gt-repo</span> <br />
+
+        Przykładowo, dla studenta <a href="https://www.youtube.com/watch?v=AfKZclMWS1U">Grzegorza Brzęczyszczykiewicza</a>, który jest w sekcji 2 może zostać utworzone: <br />
+        <span style="font-family:Consolas;">1db5a7c6-gr02</span> <br />
+        <span style="font-family:Consolas;">1db5a7c6-gr02-repo</span> <br />
+
+        @*Zwracam uwagę, że polskie ogonki zostają usunięte, gdyż github nie obsługuje prawidłowo polskich znaków w nazwach repo i teamów. <br />*@
+
+        <b>W tym semestrze w szczególności proszę o niezmienianie ręcznie nazw, gdyż mapowanie Imię Nazwisko studenta na jego losowy ciąg zapisywane jest w bazie danych i wszelkie ręczne modyfikacje z poziomu github.com doprowadzą do "rozjechania" danych.</b>
+
+        @*Zamiast zgłaszania konieczności zmiany nazwy można zrobić to ręcznie, ale proszę o zachowanie zasad nazewnictwa i spójności nazwy repozytorium i teamu.
+        <br />
+        Przykładowo jeśli nasz hipotetycznych Grzegorz bardzo chce być jednak w sekcji 12 i wyrażamy na to zgodę, nazwy jego teamu i repozytium powinny się zmienić na: <br />
+        <span style="font-family:Consolas;">Grzegorz-Brzeczyszczykiewicz-gr<b>1</b>2</span> <br />
+        <span style="font-family:Consolas;">Grzegorz-Brzeczyszczykiewicz-gr<b>1</b>2-repo</span> <br />*@
+    </span>
+
 </div>
+
 @using (Html.BeginForm())
 {
     @Html.AntiForgeryToken()
@@ -91,9 +133,13 @@
             <div class="col-md-offset-2 col-md-10">
                 <input type="submit" value="Dodaj" class="btn btn-default" />
             </div>
+            
         </div>
     </div>
 }
+<div style="width: 600px;">
+    * W przypadku niektórych kursów podział na sekcje jest niezależny od podziału na grupy. W takiej sytuacji pole grupa oznacza pierwszą cyfrę numeru sekcji (poczynając od zera), a pole sekcja oznacza drugą cyfrę tegoż numeru.
+</div>
 
 @section Scripts {
     @Scripts.Render("~/bundles/jqueryval")

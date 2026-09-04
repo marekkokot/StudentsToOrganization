@@ -1,4 +1,4 @@
-﻿using StudentsToOrganization.App_Start;
+using StudentsToOrganization.App_Start;
 using System;
 using System.Collections.Generic;
 using System.Linq;

@@ -1,4 +1,4 @@
-﻿@model List<StudentsToOrganization.Models.ManageModel>
+@model List<StudentsToOrganization.Models.ManageModel>
     @section AddToHead
     {
     <style>
@@ -15,6 +15,7 @@
     }
     @section scripts
     {
+    <script src="~/Scripts/bootstrap-confirmation.min.js"></script>
     <script>
         $(function () {
             $("input[type=submit]").click(function (e) {
@@ -25,6 +26,11 @@
             $("input[name=selectAll]").click(function (e) {
                 $("input[name=selectedItems]").prop('checked', $(this).prop('checked'));
             });
+        });
+
+        $('[data-toggle=confirmation]').confirmation({
+            rootSelector: '[data-toggle=confirmation]',
+            // other options
         });
     </script>
     }
@@ -40,8 +46,10 @@
                     </th>
                     <th>Imię</th>
                     <th>Nazwisko</th>
-                    <th style="width:30px;">Grupa</th>
-                    <th style="width:30px;">Sekcja</th>
+                    <th>github login</th>
+                    <th style="width:80px;">Grupa</th>
+                    <th style="width:80px;">Sekcja</th>
+                    <th>Repo url</th>                    
                 </tr>
             </thead>
 
@@ -52,8 +60,17 @@
                     <td><input type="checkbox" name="selectedItems" value="@cm.TeamName" /></td>
                     <td>@cm.Name</td>
                     <td>@cm.Surname</td>
+                    <td>@cm.GithubLogin</td>
                     <td>@cm.Group</td>
                     <td>@cm.Section</td>
+                    @if (string.IsNullOrEmpty(cm.HtmlUrl))
+                    {
+                        <td style="color:red">Nie odnaleziono repozytorium @cm.RandomName</td>
+                    }
+                    else
+                    {
+                        <td><a href="@cm.HtmlUrl">@cm.RandomName</a></td>
+                    }
                 </tr>
                 }
 
@@ -61,9 +78,27 @@
             </tbody>
         </table>
 
-        <input style="margin-top:4px;" type="submit" name="/Home/RemoveStudents" value="Usuń zaznaczonych" class="btn btn-default" />
+        @*<input style="margin-top:4px;" type="submit" name="/Home/RemoveStudents" value="Usuń zaznaczonych" class="btn btn-default" />
         <input style="margin-top:4px;" type="submit" name="/Home/DownloadIssues" value="Pobierz issues" class="btn btn-default" />
-        <input style="margin-top:4px;" type="submit" name="/Home/GetCloneScript" value="Pobierz skrytp do sklonowania" class="btn btn-default" />
+        <input style="margin-top:4px;" type="submit" name="/Home/GetCloneScript" value="Pobierz skrytp do sklonowania" class="btn btn-default" />*@
+
+        <input style="margin-top:4px;" type="submit" name='@Url.Action("RemoveStudents", "Home")' value="Usuń zaznaczonych"
+               class="btn btn-danger" 
+               data-toggle="confirmation" 
+               data-title="Operacja nieodwracalna." 
+               data-content="Czy na pewno chcesz nieodwracalnie usunąć wszystkie zaznaczone repozytoria?" 
+               data-placement="right" 
+               data-btn-ok-label="Tak" 
+               data-btn-cancel-label="Nie" 
+               data-btn-ok-class="btn-success" 
+               data-btn-cancel-class="btn-danger" 
+               data-btn-ok-icon-content="check" 
+               data-btn-cancel-icon-content="close" 
+               data-btn-ok-icon-class="material-icons" />
+       
+        
+        <input style="margin-top:4px;" type="submit" name='@Url.Action("DownloadIssues", "Home")' value="Pobierz issues" class="btn btn-default" />
+        <input style="margin-top:4px;" type="submit" name='@Url.Action("GetCloneScript", "Home")' value="Pobierz skrytp do sklonowania" class="btn btn-default" />
     </form>
 
 
