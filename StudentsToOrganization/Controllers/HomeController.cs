@@ -685,7 +685,41 @@ namespace StudentsToOrganization.Controllers
             }                
             else
             {
-                string result = new System.IO.StreamReader(csvFile.InputStream).ReadToEnd();
+                // Read CSV bytes, then pick encoding: BOM (UTF-8/UTF-16) -> strict UTF-8 -> Windows-1250 fallback.
+                // (Polish CSVs from Excel are usually Windows-1250; UTF-8 files, with or without BOM, also work.)
+                byte[] csvBytes;
+                using (var ms = new System.IO.MemoryStream())
+                {
+                    csvFile.InputStream.CopyTo(ms);
+                    csvBytes = ms.ToArray();
+                }
+
+                string result;
+                if (csvBytes.Length >= 3 && csvBytes[0] == 0xEF && csvBytes[1] == 0xBB && csvBytes[2] == 0xBF)
+                {
+                    result = Encoding.UTF8.GetString(csvBytes, 3, csvBytes.Length - 3);            // UTF-8 BOM
+                }
+                else if (csvBytes.Length >= 2 && csvBytes[0] == 0xFF && csvBytes[1] == 0xFE)
+                {
+                    result = Encoding.Unicode.GetString(csvBytes, 2, csvBytes.Length - 2);          // UTF-16 LE BOM
+                }
+                else if (csvBytes.Length >= 2 && csvBytes[0] == 0xFE && csvBytes[1] == 0xFF)
+                {
+                    result = Encoding.BigEndianUnicode.GetString(csvBytes, 2, csvBytes.Length - 2); // UTF-16 BE BOM
+                }
+                else
+                {
+                    try
+                    {
+                        // Strict UTF-8: throws if the bytes aren't valid UTF-8.
+                        result = new UTF8Encoding(false, true).GetString(csvBytes);
+                    }
+                    catch (DecoderFallbackException)
+                    {
+                        // Not valid UTF-8 -> assume Windows-1250 (Polish Excel default).
+                        result = Encoding.GetEncoding(1250).GetString(csvBytes);
+                    }
+                }
 
                 result = result.Replace("\r", "");
                 var lines = result.Split('\n');
