@@ -17,6 +17,12 @@ namespace StudentsToOrganization
     {
         protected void Application_Start()
         {
+            //this is fix recommended by claude for a local builds to work...
+            var binDir = System.IO.Path.Combine(
+                AppDomain.CurrentDomain.BaseDirectory, "bin",
+                Environment.Is64BitProcess ? "x64" : "x86");
+            SetDllDirectory(binDir);
+
             AreaRegistration.RegisterAllAreas();
 
             WebApiConfig.Register(GlobalConfiguration.Configuration);
@@ -24,5 +30,8 @@ namespace StudentsToOrganization
             RouteConfig.RegisterRoutes(RouteTable.Routes);
             BundleConfig.RegisterBundles(BundleTable.Bundles);
         }
+
+        [System.Runtime.InteropServices.DllImport("kernel32.dll", SetLastError = true)]
+        static extern bool SetDllDirectory(string lpPathName);
     }
 }
