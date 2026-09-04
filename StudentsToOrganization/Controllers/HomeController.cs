@@ -70,6 +70,7 @@ namespace StudentsToOrganization.Controllers
             public readonly string clientId;
             public readonly string clientSecret;
             public readonly string CourseName;
+            public readonly string courseKey;   // IIS folder / JSON key, e.g. "pk4-katowice" (safe for filenames)
             public readonly Course course;   // parsed from courseEnum; drives the scaffolding switch + DB filter
 
             private static Newtonsoft.Json.Linq.JObject _cachedRoot;
@@ -153,6 +154,7 @@ namespace StudentsToOrganization.Controllers
 
                 organization = (string)c["organization"];
                 CourseName = (string)c["courseName"];
+                courseKey = match.Name;
                 course = (Course)Enum.Parse(typeof(Course), (string)c["courseEnum"]);
 
                 string block = isLocal ? "localhost" : "server";
@@ -603,9 +605,10 @@ namespace StudentsToOrganization.Controllers
             else
                 return Redirect(GetOauthLoginUrl());
             string content = await GetIssuesForTeams(selectedItems);
-            
-            return File(Encoding.UTF8.GetBytes(content), "text/plain", "issues.txt");
-            
+
+            //return File(Encoding.UTF8.GetBytes(content), "text/plain", "issues.txt");
+            return File(Encoding.UTF8.GetBytes(content), "text/plain", "issues-" + cnf.courseKey + ".txt");
+
             //var cd = new System.Net.Mime.ContentDisposition
             //{
             //    FileName = "issues.txt",
@@ -620,35 +623,31 @@ namespace StudentsToOrganization.Controllers
 
 
         [HttpPost]
-        public async Task<ActionResult> GetCloneScript(string[] selectedItems)
+        public async Task<ActionResult> GetCloneScriptSh(string[] selectedItems)
         {
             var accessToken = Session["OAuthToken"] as string;
             if (accessToken != null)
-            {
                 client.Credentials = new Credentials(accessToken);
-            }
             else
                 return Redirect(GetOauthLoginUrl());
+
             string content = await GetCloneScriptForTeams(selectedItems);
+            content = content.Replace("\r\n", "\n");   // .sh: LF line endings
+            return File(Encoding.UTF8.GetBytes(content), "text/plain", "clone-" + cnf.courseKey + ".sh");
+        }
 
-            //byte[] res = new byte[content.Length * sizeof(char)];
-            //System.Buffer.BlockCopy(content.ToCharArray(), 0, res, 0, content.Length * sizeof(char));
+        [HttpPost]
+        public async Task<ActionResult> GetCloneScriptBat(string[] selectedItems)
+        {
+            var accessToken = Session["OAuthToken"] as string;
+            if (accessToken != null)
+                client.Credentials = new Credentials(accessToken);
+            else
+                return Redirect(GetOauthLoginUrl());
 
-            return File(Encoding.ASCII.GetBytes(content),
-                 "text/plain",
-                  "clone.sh");
-
-            //var cd = new System.Net.Mime.ContentDisposition
-            //{
-            //    FileName = "clone.sh",
-            //    Inline = false
-            //};
-            //Response.AppendHeader("Content-Disposition", cd.ToString());
-
-
-            //return File(Encoding.UTF8.GetBytes(content), "text/plain", "clone.sh" );
-
-            //return File(res, System.Net.Mime.MediaTypeNames.Text.Plain);
+            string content = await GetCloneScriptForTeams(selectedItems);
+            content = content.Replace("\r\n", "\n").Replace("\n", "\r\n");   // .bat: CRLF line endings
+            return File(Encoding.UTF8.GetBytes(content), "text/plain", "clone-" + cnf.courseKey + ".bat");
         }
 
         public ActionResult AddFromCSV()

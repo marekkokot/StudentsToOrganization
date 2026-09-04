@@ -37,68 +37,69 @@
     @{
     ViewBag.Title = "ManageRepositoriesResult";
     }
-    <form name="ManageStudents" method="post">
-        <table style="width:30%;">
-            <thead>
-                <tr>
-                    <th style="width:45px;">
-                        <input type="checkbox" name="selectAll" />                        
-                    </th>
-                    <th>Imię</th>
-                    <th>Nazwisko</th>
-                    <th>github login</th>
-                    <th style="width:80px;">Grupa</th>
-                    <th style="width:80px;">Sekcja</th>
-                    <th>Repo url</th>                    
-                </tr>
-            </thead>
+<form name="ManageStudents" method="post">
+    <table style="width:30%;">
+        <thead>
+            <tr>
+                <th style="width:45px;">
+                    <input type="checkbox" name="selectAll" />
+                </th>
+                <th>Imię</th>
+                <th>Nazwisko</th>
+                <th>github login</th>
+                <th style="width:80px;">Grupa</th>
+                <th style="width:80px;">Sekcja</th>
+                <th>Repo url</th>
+            </tr>
+        </thead>
 
-            <tbody>
-                @foreach(var cm in @Model)
+        <tbody>
+            @foreach(var cm in @Model)
                 {
-                <tr>
-                    <td><input type="checkbox" name="selectedItems" value="@cm.TeamName" /></td>
-                    <td>@cm.Name</td>
-                    <td>@cm.Surname</td>
-                    <td>@cm.GithubLogin</td>
-                    <td>@cm.Group</td>
-                    <td>@cm.Section</td>
-                    @if (string.IsNullOrEmpty(cm.HtmlUrl))
+            <tr>
+                <td><input type="checkbox" name="selectedItems" value="@cm.TeamName" /></td>
+                <td>@cm.Name</td>
+                <td>@cm.Surname</td>
+                <td>@cm.GithubLogin</td>
+                <td>@cm.Group</td>
+                <td>@cm.Section</td>
+                @if (string.IsNullOrEmpty(cm.HtmlUrl))
                     {
-                        <td style="color:red">Nie odnaleziono repozytorium @cm.RandomName</td>
+                <td style="color:red">Nie odnaleziono repozytorium @cm.RandomName</td>
                     }
                     else
                     {
-                        <td><a href="@cm.HtmlUrl">@cm.RandomName</a></td>
+                <td><a href="@cm.HtmlUrl">@cm.RandomName</a></td>
                     }
-                </tr>
+            </tr>
                 }
 
 
-            </tbody>
-        </table>
+        </tbody>
+    </table>
 
-        @*<input style="margin-top:4px;" type="submit" name="/Home/RemoveStudents" value="Usuń zaznaczonych" class="btn btn-default" />
+    @*<input style="margin-top:4px;" type="submit" name="/Home/RemoveStudents" value="Usuń zaznaczonych" class="btn btn-default" />
         <input style="margin-top:4px;" type="submit" name="/Home/DownloadIssues" value="Pobierz issues" class="btn btn-default" />
         <input style="margin-top:4px;" type="submit" name="/Home/GetCloneScript" value="Pobierz skrytp do sklonowania" class="btn btn-default" />*@
 
-        <input style="margin-top:4px;" type="submit" name='@Url.Action("RemoveStudents", "Home")' value="Usuń zaznaczonych"
-               class="btn btn-danger" 
-               data-toggle="confirmation" 
-               data-title="Operacja nieodwracalna." 
-               data-content="Czy na pewno chcesz nieodwracalnie usunąć wszystkie zaznaczone repozytoria?" 
-               data-placement="right" 
-               data-btn-ok-label="Tak" 
-               data-btn-cancel-label="Nie" 
-               data-btn-ok-class="btn-success" 
-               data-btn-cancel-class="btn-danger" 
-               data-btn-ok-icon-content="check" 
-               data-btn-cancel-icon-content="close" 
-               data-btn-ok-icon-class="material-icons" />
-       
-        
-        <input style="margin-top:4px;" type="submit" name='@Url.Action("DownloadIssues", "Home")' value="Pobierz issues" class="btn btn-default" />
-        <input style="margin-top:4px;" type="submit" name='@Url.Action("GetCloneScript", "Home")' value="Pobierz skrytp do sklonowania" class="btn btn-default" />
-    </form>
+    <input style="margin-top:4px;" type="submit" name='@Url.Action("RemoveStudents", "Home")' value="Usuń zaznaczonych"
+           class="btn btn-danger"
+           data-toggle="confirmation"
+           data-title="Operacja nieodwracalna."
+           data-content="Czy na pewno chcesz nieodwracalnie usunąć wszystkie zaznaczone repozytoria?"
+           data-placement="right"
+           data-btn-ok-label="Tak"
+           data-btn-cancel-label="Nie"
+           data-btn-ok-class="btn-success"
+           data-btn-cancel-class="btn-danger"
+           data-btn-ok-icon-content="check"
+           data-btn-cancel-icon-content="close"
+           data-btn-ok-icon-class="material-icons" />
+
+
+    <input style="margin-top:4px;" type="submit" name='@Url.Action("DownloadIssues", "Home")' value="Pobierz issues" class="btn btn-default" />
+    <input style="margin-top:4px;" type="submit" name='@Url.Action("GetCloneScriptSh", "Home")' value="Pobierz skrypt sklonowania (.sh)" class="btn btn-default" />
+    <input style="margin-top:4px;" type="submit" name='@Url.Action("GetCloneScriptBat", "Home")' value="Pobierz skrypt sklonowania (.bat)" class="btn btn-default" />
+</form>
 
 
