@@ -838,24 +838,12 @@ namespace StudentsToOrganization.Controllers
             model.Surname = Surname;
         }
 
-        
         private async Task<CreateResult> addStudentImpl(StudentData student)
         {
-            //student.FirstName = RemoveWhitespacesAndPauses(student.FirstName);
-            //student.Surname = RemoveWhitespacesAndPauses(student.Surname);
-
-            //student.FirstName = student.FirstName.Trim().Replace("-", "");
-            //student.Surname = student.Surname.Trim().Replace("-", "");
-            //
-            //student.FirstName = student.FirstName[0].ToString().ToUpper() + student.FirstName.Substring(1).ToLower();
-            //student.Surname = student.Surname[0].ToString().ToUpper() + student.Surname.Substring(1).ToLower();
-
             FixFirstNameAndSurname(student);
 
             CreateResult res = new CreateResult();
 
-            //res.TeamName = student.FirstName + '-' + student.Surname + "-gr" + student.Group + student.Section;
-            //res.TeamName = res.TeamName.RemoveDiacritics();
             string RandomName = "";
             Team team_id = null;
 
@@ -870,14 +858,29 @@ namespace StudentsToOrganization.Controllers
 
             await run_with_retries(async () =>
             {
-                //await client.Organization.Team.AddOrEditMembership(team_id.Id, student.GitLogin, new UpdateTeamMembership(TeamRole.Member));
-                //await client.Organization.Team.AddMembership(team_id.Id, student.GitLogin);
                 await client.Organization.Team.AddOrEditMembership(team_id.Id, student.GitLogin, new UpdateTeamMembership(TeamRole.Member));
             }, expcetion_retries);
 
+            const string TEMPLATE_REPO_NAME = "_TEMPLATE_DO_NOT_DELETE";
+
+            try
+            {
+                await run_with_retries(async () =>
+                {
+                    await client.Repository.Generate(organization, TEMPLATE_REPO_NAME, new NewRepositoryFromTemplate(res.RepoName) { Private = true, Owner = organization });
+                }, expcetion_retries);
+            }
+            catch (Octokit.NotFoundException ex)
+            {
+                throw new Exception(
+                        "Nie znaleziono repozytorium-szablonu '" + TEMPLATE_REPO_NAME + "' w organizacji '" +
+                        organization + "'. Utwórz je (z odpowiednią strukturą katalogów) i oznacz jako " +
+                        "'Template repository' w ustawieniach repozytorium. Szczegóły: " + ex.ToString());
+            }
+
             await run_with_retries(async () =>
             {
-                await client.Repository.Create(organization, new NewRepository(res.RepoName) { Private = true, AutoInit = true, GitignoreTemplate = "VisualStudio", TeamId = checked((int)team_id.Id) });
+                await client.Organization.Team.AddRepository(team_id.Id, organization, res.RepoName);
             }, expcetion_retries);
 
             using (var dbContext = new GithubDataEntities())
@@ -896,422 +899,6 @@ namespace StudentsToOrganization.Controllers
                 dbContext.SaveChanges();
             }
 
-            //ppk inf
-            if (cnf.course == Course.PPK)
-            {
-                for (int i = 1; i <= 15; ++i)
-                {
-                    string nr = i.ToString();
-                    if (i < 10)
-                        nr = "0" + nr;
-
-                    await run_with_retries(async () =>
-                    {
-                        await client.Repository.Content.CreateFile(organization, res.RepoName, "lab-" + nr + "/README.md", new CreateFileRequest("Wprowadzenie", "Tutaj umieszczać pliki związane z tematem " + i.ToString()));
-                    }, expcetion_retries);
-                }
-                await run_with_retries(async () =>
-                {
-                    await client.Repository.Content.CreateFile(organization, res.RepoName, "projekt/README.md", new CreateFileRequest("Wprowadzenie", "Tutaj umieszczać projekt"));
-                }, expcetion_retries);
-            }
-            else if (cnf.course == Course.PPKkatowice) //PPK katowice
-            {
-                for (int i = 1; i <= 15; ++i)
-                {
-                    string nr = i.ToString();
-                    if (i < 10)
-                        nr = "0" + nr;
-
-                    await run_with_retries(async () =>
-                    {
-                        await client.Repository.Content.CreateFile(organization, res.RepoName, "lab-" + nr + "/README.md", new CreateFileRequest("Wprowadzenie", "Tutaj umieszczać pliki związane z tematem " + i.ToString()));
-                    }, expcetion_retries);
-                }
-                await run_with_retries(async () =>
-                {
-                    await client.Repository.Content.CreateFile(organization, res.RepoName, "projekt/README.md", new CreateFileRequest("Wprowadzenie", "Tutaj umieszczać projekt"));
-                }, expcetion_retries);
-            }
-            //aisd-tele
-            else if (cnf.course == Course.AiSDt)
-            {
-                await run_with_retries(async () =>
-                {
-                    await client.Repository.Content.CreateFile(organization, res.RepoName, "projekt 1/README.md", new CreateFileRequest("Wprowadzenie", "Tutaj umieszczać projekt 1"));
-                }, expcetion_retries);
-                await run_with_retries(async () =>
-                {
-                    await client.Repository.Content.CreateFile(organization, res.RepoName, "projekt 2/README.md", new CreateFileRequest("Wprowadzenie", "Tutaj umieszczać projekt 2"));
-                }, expcetion_retries);
-            }
-            else if (cnf.course == Course.PK2)
-            {
-                await run_with_retries(async () =>
-                {
-                    await client.Repository.Content.CreateFile(organization, res.RepoName, "lab1/README.md", new CreateFileRequest("Wprowadzenie", "Tutaj umieszczać zajęcia laboratoryjne nr 1"));
-                }, expcetion_retries);
-                await run_with_retries(async () =>
-                {
-                    await client.Repository.Content.CreateFile(organization, res.RepoName, "lab2/README.md", new CreateFileRequest("Wprowadzenie", "Tutaj umieszczać zajęcia laboratoryjne nr 2"));
-                }, expcetion_retries);
-                await run_with_retries(async () =>
-                {
-                    await client.Repository.Content.CreateFile(organization, res.RepoName, "lab3/README.md", new CreateFileRequest("Wprowadzenie", "Tutaj umieszczać zajęcia laboratoryjne nr 3"));
-                }, expcetion_retries);
-                await run_with_retries(async () =>
-                {
-                    await client.Repository.Content.CreateFile(organization, res.RepoName, "lab4/README.md", new CreateFileRequest("Wprowadzenie", "Tutaj umieszczać zajęcia laboratoryjne nr 4"));
-                }, expcetion_retries);
-                await run_with_retries(async () =>
-                {
-                    await client.Repository.Content.CreateFile(organization, res.RepoName, "lab5/README.md", new CreateFileRequest("Wprowadzenie", "Tutaj umieszczać zajęcia laboratoryjne nr 5"));
-                }, expcetion_retries);
-                await run_with_retries(async () =>
-                {
-                    await client.Repository.Content.CreateFile(organization, res.RepoName, "lab6/README.md", new CreateFileRequest("Wprowadzenie", "Tutaj umieszczać zajęcia laboratoryjne nr 6"));
-                }, expcetion_retries);
-                await run_with_retries(async () =>
-                {
-                    await client.Repository.Content.CreateFile(organization, res.RepoName, "lab7/README.md", new CreateFileRequest("Wprowadzenie", "Tutaj umieszczać zajęcia laboratoryjne nr 7"));
-                }, expcetion_retries);
-                await run_with_retries(async () =>
-                {
-                    await client.Repository.Content.CreateFile(organization, res.RepoName, "Projekt/README.md", new CreateFileRequest("Wprowadzenie", "Tutaj umieszczać projekt"));
-                }, expcetion_retries);
-            }
-            else if (cnf.course == Course.PK2Katowice)
-            {
-                await run_with_retries(async () =>
-                {
-                    await client.Repository.Content.CreateFile(organization, res.RepoName, "lab1/README.md", new CreateFileRequest("Wprowadzenie", "Tutaj umieszczać zajęcia laboratoryjne nr 1"));
-                }, expcetion_retries);
-                await run_with_retries(async () =>
-                {
-                    await client.Repository.Content.CreateFile(organization, res.RepoName, "lab2/README.md", new CreateFileRequest("Wprowadzenie", "Tutaj umieszczać zajęcia laboratoryjne nr 2"));
-                }, expcetion_retries);
-                await run_with_retries(async () =>
-                {
-                    await client.Repository.Content.CreateFile(organization, res.RepoName, "lab3/README.md", new CreateFileRequest("Wprowadzenie", "Tutaj umieszczać zajęcia laboratoryjne nr 3"));
-                }, expcetion_retries);
-                await run_with_retries(async () =>
-                {
-                    await client.Repository.Content.CreateFile(organization, res.RepoName, "lab4/README.md", new CreateFileRequest("Wprowadzenie", "Tutaj umieszczać zajęcia laboratoryjne nr 4"));
-                }, expcetion_retries);
-                await run_with_retries(async () =>
-                {
-                    await client.Repository.Content.CreateFile(organization, res.RepoName, "lab5/README.md", new CreateFileRequest("Wprowadzenie", "Tutaj umieszczać zajęcia laboratoryjne nr 5"));
-                }, expcetion_retries);
-                await run_with_retries(async () =>
-                {
-                    await client.Repository.Content.CreateFile(organization, res.RepoName, "lab6/README.md", new CreateFileRequest("Wprowadzenie", "Tutaj umieszczać zajęcia laboratoryjne nr 6"));
-                }, expcetion_retries);
-                await run_with_retries(async () =>
-                {
-                    await client.Repository.Content.CreateFile(organization, res.RepoName, "lab7/README.md", new CreateFileRequest("Wprowadzenie", "Tutaj umieszczać zajęcia laboratoryjne nr 7"));
-                }, expcetion_retries);
-                await run_with_retries(async () =>
-                {
-                    await client.Repository.Content.CreateFile(organization, res.RepoName, "Projekt/README.md", new CreateFileRequest("Wprowadzenie", "Tutaj umieszczać zajęcia laboratoryjne"));
-                }, expcetion_retries);
-            }
-            else if (cnf.course == Course.PK3Katowice)
-            {
-                await run_with_retries(async () =>
-                {
-                    await client.Repository.Content.CreateFile(organization, res.RepoName, "Laboratorium/README.md", new CreateFileRequest("Wprowadzenie", "Tutaj umieszczać zajęcia laboratoryjne"));
-                }, expcetion_retries);
-                await run_with_retries(async () =>
-                {
-                    await client.Repository.Content.CreateFile(organization, res.RepoName, "Projekt/README.md", new CreateFileRequest("Wprowadzenie", "Tutaj umieszczać projekt"));
-                }, expcetion_retries);
-                //await run_with_retries(async () =>
-                //{
-                //    await client.Repository.Content.CreateFile(organization, res.RepoName, "Student/README.md", new CreateFileRequest("Wprowadzenie", "Tutaj można umieszczać pliki nie związane z projektem ani laboratorium. Jest to swego rodzaju brudnopis"));
-                //}, expcetion_retries);
-            }
-            else if (cnf.course == Course.PK4Katowice)
-            {
-                await run_with_retries(async () =>
-                {
-                    await client.Repository.Content.CreateFile(organization, res.RepoName, "lab1/README.md", new CreateFileRequest("Wprowadzenie", "Tutaj umieszczać zajęcia laboratoryjne nr 1"));
-                }, expcetion_retries);
-                await run_with_retries(async () =>
-                {
-                    await client.Repository.Content.CreateFile(organization, res.RepoName, "lab2/README.md", new CreateFileRequest("Wprowadzenie", "Tutaj umieszczać zajęcia laboratoryjne nr 2"));
-                }, expcetion_retries);
-                await run_with_retries(async () =>
-                {
-                    await client.Repository.Content.CreateFile(organization, res.RepoName, "lab3/README.md", new CreateFileRequest("Wprowadzenie", "Tutaj umieszczać zajęcia laboratoryjne nr 3"));
-                }, expcetion_retries);
-                await run_with_retries(async () =>
-                {
-                    await client.Repository.Content.CreateFile(organization, res.RepoName, "lab4/README.md", new CreateFileRequest("Wprowadzenie", "Tutaj umieszczać zajęcia laboratoryjne nr 4"));
-                }, expcetion_retries);
-                await run_with_retries(async () =>
-                {
-                    await client.Repository.Content.CreateFile(organization, res.RepoName, "lab5/README.md", new CreateFileRequest("Wprowadzenie", "Tutaj umieszczać zajęcia laboratoryjne nr 5"));
-                }, expcetion_retries);
-                await run_with_retries(async () =>
-                {
-                    await client.Repository.Content.CreateFile(organization, res.RepoName, "lab6/README.md", new CreateFileRequest("Wprowadzenie", "Tutaj umieszczać zajęcia laboratoryjne nr 6"));
-                }, expcetion_retries);
-                await run_with_retries(async () =>
-                {
-                    await client.Repository.Content.CreateFile(organization, res.RepoName, "lab7/README.md", new CreateFileRequest("Wprowadzenie", "Tutaj umieszczać zajęcia laboratoryjne nr 7"));
-                }, expcetion_retries);
-                await run_with_retries(async () =>
-                {
-                    await client.Repository.Content.CreateFile(organization, res.RepoName, "Projekt/README.md", new CreateFileRequest("Wprowadzenie", "Tutaj umieszczać projekt"));
-                }, expcetion_retries);
-            }
-            //cp2 ang
-            else if (cnf.course == Course.CP2Ang)
-            {
-                await run_with_retries(async () =>
-                {
-                    await client.Repository.Content.CreateFile(organization, res.RepoName, "lab1/README.md", new CreateFileRequest("Create repository", "Place your lab 1 sources here"));
-                }, expcetion_retries);
-                await run_with_retries(async () =>
-                {
-                    await client.Repository.Content.CreateFile(organization, res.RepoName, "lab2/README.md", new CreateFileRequest("Create repository", "Place your lab 2 sources here"));
-                }, expcetion_retries);
-                await run_with_retries(async () =>
-                {
-                    await client.Repository.Content.CreateFile(organization, res.RepoName, "lab3/README.md", new CreateFileRequest("Create repository", "Place your lab 3 sources here"));
-                }, expcetion_retries);
-                await run_with_retries(async () =>
-                {
-                    await client.Repository.Content.CreateFile(organization, res.RepoName, "lab4/README.md", new CreateFileRequest("Create repository", "Place your lab 4 sources here"));
-                }, expcetion_retries);
-                await run_with_retries(async () =>
-                {
-                    await client.Repository.Content.CreateFile(organization, res.RepoName, "lab5/README.md", new CreateFileRequest("Create repository", "Place your lab 5 sources here"));
-                }, expcetion_retries);
-                await run_with_retries(async () =>
-                {
-                    await client.Repository.Content.CreateFile(organization, res.RepoName, "lab6/README.md", new CreateFileRequest("Create repository", "Place your lab 6 sources here"));
-                }, expcetion_retries);
-                await run_with_retries(async () =>
-                {
-                    await client.Repository.Content.CreateFile(organization, res.RepoName, "lab7/README.md", new CreateFileRequest("Create repository", "Place your lab 7 sources here"));
-                }, expcetion_retries);
-                await run_with_retries(async () =>
-                {
-                    await client.Repository.Content.CreateFile(organization, res.RepoName, "Project/README.md", new CreateFileRequest("Create repository", "Place your project here"));
-                }, expcetion_retries);
-            }
-            //CP3Aang
-            else if (cnf.course == Course.CP3Ang)
-            {
-                await run_with_retries(async () =>
-                {
-                    await client.Repository.Content.CreateFile(organization, res.RepoName, "Laboratory/README.md", new CreateFileRequest("Create repository", "Place your laboratory sources here"));
-                }, expcetion_retries);
-                await run_with_retries(async () =>
-                {
-                    await client.Repository.Content.CreateFile(organization, res.RepoName, "Project/README.md", new CreateFileRequest("Create repository", "Place your project here"));
-                }, expcetion_retries);
-            }
-            else if (cnf.course == Course.CP4Ang)
-            {
-                await run_with_retries(async () =>
-                {
-                    await client.Repository.Content.CreateFile(organization, res.RepoName, "lab1/README.md", new CreateFileRequest("Create repository", "Place your lab 1 sources here"));
-                }, expcetion_retries);
-                await run_with_retries(async () =>
-                {
-                    await client.Repository.Content.CreateFile(organization, res.RepoName, "lab2/README.md", new CreateFileRequest("Create repository", "Place your lab 2 sources here"));
-                }, expcetion_retries);
-                await run_with_retries(async () =>
-                {
-                    await client.Repository.Content.CreateFile(organization, res.RepoName, "lab3/README.md", new CreateFileRequest("Create repository", "Place your lab 3 sources here"));
-                }, expcetion_retries);
-                await run_with_retries(async () =>
-                {
-                    await client.Repository.Content.CreateFile(organization, res.RepoName, "lab4/README.md", new CreateFileRequest("Create repository", "Place your lab 4 sources here"));
-                }, expcetion_retries);
-                await run_with_retries(async () =>
-                {
-                    await client.Repository.Content.CreateFile(organization, res.RepoName, "lab5/README.md", new CreateFileRequest("Create repository", "Place your lab 5 sources here"));
-                }, expcetion_retries);
-                await run_with_retries(async () =>
-                {
-                    await client.Repository.Content.CreateFile(organization, res.RepoName, "lab6/README.md", new CreateFileRequest("Create repository", "Place your lab 6 sources here"));
-                }, expcetion_retries);
-                await run_with_retries(async () =>
-                {
-                    await client.Repository.Content.CreateFile(organization, res.RepoName, "lab7/README.md", new CreateFileRequest("Create repository", "Place your lab 6 sources here"));
-                }, expcetion_retries);
-                await run_with_retries(async () =>
-                {
-                    await client.Repository.Content.CreateFile(organization, res.RepoName, "Project/README.md", new CreateFileRequest("Create repository", "Place your project here"));
-                }, expcetion_retries);
-            }
-            //pk4
-            else if (cnf.course == Course.PK4)
-            {
-                await run_with_retries(async () =>
-                {
-                    await client.Repository.Content.CreateFile(organization, res.RepoName, "lab1/README.md", new CreateFileRequest("Wprowadzenie", "Tutaj umieszczać zajęcia laboratoryjne nr 1"));
-                }, expcetion_retries);
-                await run_with_retries(async () =>
-                {
-                    await client.Repository.Content.CreateFile(organization, res.RepoName, "lab2/README.md", new CreateFileRequest("Wprowadzenie", "Tutaj umieszczać zajęcia laboratoryjne nr 2"));
-                }, expcetion_retries);
-                await run_with_retries(async () =>
-                {
-                    await client.Repository.Content.CreateFile(organization, res.RepoName, "lab3/README.md", new CreateFileRequest("Wprowadzenie", "Tutaj umieszczać zajęcia laboratoryjne nr 3"));
-                }, expcetion_retries);
-                await run_with_retries(async () =>
-                {
-                    await client.Repository.Content.CreateFile(organization, res.RepoName, "lab4/README.md", new CreateFileRequest("Wprowadzenie", "Tutaj umieszczać zajęcia laboratoryjne nr 4"));
-                }, expcetion_retries);
-                await run_with_retries(async () =>
-                {
-                    await client.Repository.Content.CreateFile(organization, res.RepoName, "lab5/README.md", new CreateFileRequest("Wprowadzenie", "Tutaj umieszczać zajęcia laboratoryjne nr 5"));
-                }, expcetion_retries);
-                await run_with_retries(async () =>
-                {
-                    await client.Repository.Content.CreateFile(organization, res.RepoName, "lab6/README.md", new CreateFileRequest("Wprowadzenie", "Tutaj umieszczać zajęcia laboratoryjne nr 6"));
-                }, expcetion_retries);
-                await run_with_retries(async () =>
-                {
-                    await client.Repository.Content.CreateFile(organization, res.RepoName, "lab7/README.md", new CreateFileRequest("Wprowadzenie", "Tutaj umieszczać zajęcia laboratoryjne nr 7"));
-                }, expcetion_retries);
-                await run_with_retries(async () =>
-                {
-                    await client.Repository.Content.CreateFile(organization, res.RepoName, "Projekt/README.md", new CreateFileRequest("Wprowadzenie", "Tutaj umieszczać projekt"));
-                }, expcetion_retries);
-            }
-            //ppk tele
-            else if (cnf.course == Course.PPKt)
-            {
-                await run_with_retries(async () =>
-                {
-                    await client.Repository.Content.CreateFile(organization, res.RepoName, "Laboratorium/README.md", new CreateFileRequest("Wprowadzenie", "Tutaj umieszczać zajęcia laboratoryjne"));
-                }, expcetion_retries);
-                await run_with_retries(async () =>
-                {
-                    await client.Repository.Content.CreateFile(organization, res.RepoName, "Projekt/README.md", new CreateFileRequest("Wprowadzenie", "Tutaj umieszczać projekt"));
-                }, expcetion_retries);
-            }
-            //pk2 tele
-            else if (cnf.course == Course.PK2t)
-            {
-                await run_with_retries(async () =>
-                {
-                    await client.Repository.Content.CreateFile(organization, res.RepoName, "lab1/README.md", new CreateFileRequest("Wprowadzenie", "Tutaj umieszczać zajęcia laboratoryjne nr 1"));
-                }, expcetion_retries);
-                await run_with_retries(async () =>
-                {
-                    await client.Repository.Content.CreateFile(organization, res.RepoName, "lab2/README.md", new CreateFileRequest("Wprowadzenie", "Tutaj umieszczać zajęcia laboratoryjne nr 2"));
-                }, expcetion_retries);
-                await run_with_retries(async () =>
-                {
-                    await client.Repository.Content.CreateFile(organization, res.RepoName, "lab3/README.md", new CreateFileRequest("Wprowadzenie", "Tutaj umieszczać zajęcia laboratoryjne nr 3"));
-                }, expcetion_retries);
-                await run_with_retries(async () =>
-                {
-                    await client.Repository.Content.CreateFile(organization, res.RepoName, "lab4/README.md", new CreateFileRequest("Wprowadzenie", "Tutaj umieszczać zajęcia laboratoryjne nr 4"));
-                }, expcetion_retries);
-                await run_with_retries(async () =>
-                {
-                    await client.Repository.Content.CreateFile(organization, res.RepoName, "lab5/README.md", new CreateFileRequest("Wprowadzenie", "Tutaj umieszczać zajęcia laboratoryjne nr 5"));
-                }, expcetion_retries);
-                await run_with_retries(async () =>
-                {
-                    await client.Repository.Content.CreateFile(organization, res.RepoName, "lab6/README.md", new CreateFileRequest("Wprowadzenie", "Tutaj umieszczać zajęcia laboratoryjne nr 6"));
-                }, expcetion_retries);
-                await run_with_retries(async () =>
-                {
-                    await client.Repository.Content.CreateFile(organization, res.RepoName, "Projekt/README.md", new CreateFileRequest("Wprowadzenie", "Tutaj umieszczać projekt"));
-                }, expcetion_retries);
-            }
-            //pk3
-            else if (cnf.course == Course.PK3)
-            {
-                await run_with_retries(async () =>
-                {
-                    await client.Repository.Content.CreateFile(organization, res.RepoName, "Laboratorium/README.md", new CreateFileRequest("Wprowadzenie", "Tutaj umieszczać zajęcia laboratoryjne"));
-                }, expcetion_retries);
-                await run_with_retries(async () =>
-                {
-                    await client.Repository.Content.CreateFile(organization, res.RepoName, "Projekt/README.md", new CreateFileRequest("Wprowadzenie", "Tutaj umieszczać projekt"));
-                }, expcetion_retries);
-                //await run_with_retries(async () =>
-                //{
-                //    await client.Repository.Content.CreateFile(organization, res.RepoName, "Student/README.md", new CreateFileRequest("Wprowadzenie", "Tutaj można umieszczać pliki nie związane z projektem ani laboratorium. Jest to swego rodzaju brudnopis"));
-                //}, expcetion_retries);
-            }
-            else if (cnf.course == Course.JAVA)
-            {
-                await run_with_retries(async () =>
-                {
-                    await client.Repository.Content.CreateFile(organization, res.RepoName, "Projekt/README.md", new CreateFileRequest("Wprowadzenie", "Tutaj umieszczać projekt"));
-                }, expcetion_retries);
-
-                await run_with_retries(async () =>
-                {
-                    await client.Repository.Content.CreateFile(organization, res.RepoName, "lab1/README.md", new CreateFileRequest("Wprowadzenie", "Tutaj umieszczać zajęcia laboratoryjne nr 1"));
-                }, expcetion_retries);
-                await run_with_retries(async () =>
-                {
-                    await client.Repository.Content.CreateFile(organization, res.RepoName, "lab2/README.md", new CreateFileRequest("Wprowadzenie", "Tutaj umieszczać zajęcia laboratoryjne nr 2"));
-                }, expcetion_retries);
-                await run_with_retries(async () =>
-                {
-                    await client.Repository.Content.CreateFile(organization, res.RepoName, "lab3/README.md", new CreateFileRequest("Wprowadzenie", "Tutaj umieszczać zajęcia laboratoryjne nr 3"));
-                }, expcetion_retries);
-                await run_with_retries(async () =>
-                {
-                    await client.Repository.Content.CreateFile(organization, res.RepoName, "lab4/README.md", new CreateFileRequest("Wprowadzenie", "Tutaj umieszczać zajęcia laboratoryjne nr 4"));
-                }, expcetion_retries);
-                await run_with_retries(async () =>
-                {
-                    await client.Repository.Content.CreateFile(organization, res.RepoName, "lab5/README.md", new CreateFileRequest("Wprowadzenie", "Tutaj umieszczać zajęcia laboratoryjne nr 5"));
-                }, expcetion_retries);
-                await run_with_retries(async () =>
-                {
-                    await client.Repository.Content.CreateFile(organization, res.RepoName, "lab6/README.md", new CreateFileRequest("Wprowadzenie", "Tutaj umieszczać zajęcia laboratoryjne nr 5"));
-                }, expcetion_retries);
-            }
-            //ppk inf
-            else if (cnf.course == Course.FCPang)
-            {
-                for (int i = 1; i <= 15; ++i)
-                {
-                    string nr = i.ToString();
-                    if (i < 10)
-                        nr = "0" + nr;
-
-                    await run_with_retries(async () =>
-                    {
-                        await client.Repository.Content.CreateFile(organization, res.RepoName, "lab-" + nr + "/README.md", new CreateFileRequest("Create repository", "Files for laboratory " + i.ToString()));
-                    }, expcetion_retries);
-                }
-                await run_with_retries(async () =>
-                {
-                    await client.Repository.Content.CreateFile(organization, res.RepoName, "project/README.md", new CreateFileRequest("Create repository", "Place your project here"));
-                }, expcetion_retries);
-            }
-            //cp3 makro 
-            else if (cnf.course == Course.CP3makro)
-            {
-                await run_with_retries(async () =>
-                {
-                    await client.Repository.Content.CreateFile(organization, res.RepoName, "Thematic_tasks/README.md", new CreateFileRequest("Create repository", "Place your thematic tasks files here"));
-                }, expcetion_retries);
-
-                await run_with_retries(async () =>
-                {
-                    await client.Repository.Content.CreateFile(organization, res.RepoName, "Project/README.md", new CreateFileRequest("Create repository", "Place your project here"));
-                }, expcetion_retries);
-            }
-            else
-            {
-                throw new Exception("Unknown course ");
-            }
             return res;
         }
 
