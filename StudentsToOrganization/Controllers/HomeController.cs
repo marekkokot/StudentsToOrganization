@@ -19,15 +19,6 @@ namespace StudentsToOrganization.Controllers
     {
         #region CONFIGURATION
 
-        enum Course
-        {
-            PPK, PK2, PK3, PK4, JAVA, //GLIWICE
-            PPKt, PK2t, AiSDt, // tele
-            FCPang, CP2Ang, CP3Ang, CP4Ang, //GLIWICE angielska
-            CP3makro, // makro
-            PPKkatowice, PK2Katowice, PK3Katowice, PK4Katowice //Katowice
-        };
-
         // ====================================================================
         //  COURSE / SECRETS CONFIGURATION  (one binary serves all courses)
         // --------------------------------------------------------------------
@@ -71,7 +62,7 @@ namespace StudentsToOrganization.Controllers
             public readonly string clientSecret;
             public readonly string CourseName;
             public readonly string courseKey;   // IIS folder / JSON key, e.g. "pk4-katowice" (safe for filenames)
-            public readonly Course course;   // parsed from courseEnum; drives the scaffolding switch + DB filter
+            public readonly string courseEnumName;   // value stored in the DB 'Course' column (from JSON courseEnum)
 
             private static Newtonsoft.Json.Linq.JObject _cachedRoot;
             private static readonly object _lock = new object();
@@ -99,6 +90,27 @@ namespace StudentsToOrganization.Controllers
                                             "  (See the runbook comment in HomeController for how to place it.)");
 
                     _cachedRoot = Newtonsoft.Json.Linq.JObject.Parse(System.IO.File.ReadAllText(path));
+                    
+                    // Validate: every course must have a 'courseEnum', and no two courses
+                    // may share the same 'courseEnum' value. It is the DB 'Course' key —
+                    // a duplicate would make two course apps read/write the same student
+                    // rows, mixing students across courses. Fail loudly at load time.
+                    var coursesForCheck = (Newtonsoft.Json.Linq.JObject)_cachedRoot["courses"];
+                    if (coursesForCheck == null)
+                        throw new Exception("github_secrets.json has no 'courses' object.");
+
+                    var seenEnum = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                    foreach (var prop in coursesForCheck.Properties())
+                    {
+                        var enumVal = (string)((Newtonsoft.Json.Linq.JObject)prop.Value)["courseEnum"];
+                        if (string.IsNullOrEmpty(enumVal))
+                            throw new Exception("Course '" + prop.Name + "' is missing 'courseEnum' in github_secrets.json.");
+                        if (!seenEnum.Add(enumVal))
+                            throw new Exception("Duplicate 'courseEnum' value '" + enumVal +
+                                "' in github_secrets.json. Each course must have a globally unique 'courseEnum' " +
+                                "(it is the DB 'Course' key; duplicates would mix students across courses).");
+                    }
+
                     return _cachedRoot;
                 }
             }
@@ -155,7 +167,7 @@ namespace StudentsToOrganization.Controllers
                 organization = (string)c["organization"];
                 CourseName = (string)c["courseName"];
                 courseKey = match.Name;
-                course = (Course)Enum.Parse(typeof(Course), (string)c["courseEnum"]);
+                courseEnumName = (string)c["courseEnum"];
 
                 string block = isLocal ? "localhost" : "server";
                 var creds = (Newtonsoft.Json.Linq.JObject)c[block];
@@ -428,7 +440,7 @@ namespace StudentsToOrganization.Controllers
                         //delete member
                         using (var dbContext = new GithubDataEntities())
                         {
-                            var r = (from s in dbContext.Students where s.Course == cnf.course.ToString() && s.GithubLogin == member.Login select s).Count();                            
+                            var r = (from s in dbContext.Students where s.Course == cnf.courseEnumName && s.GithubLogin == member.Login select s).Count();                            
                             if (r > 1) //if user belongs to more than one team do not remove him/her from organization
                                 continue;
                         }
@@ -451,7 +463,7 @@ namespace StudentsToOrganization.Controllers
 
                     using (var dbContext = new GithubDataEntities())
                     {
-                        var  r = from s in dbContext.Students where s.Course == cnf.course.ToString() && s.RandomName == RandomName select s;
+                        var  r = from s in dbContext.Students where s.Course == cnf.courseEnumName && s.RandomName == RandomName select s;
                         dbContext.Students.Remove(r.First());
                         dbContext.SaveChanges();
                     }
@@ -506,7 +518,7 @@ namespace StudentsToOrganization.Controllers
                     Student student=null;
                     using (var dbContext = new GithubDataEntities())
                     {
-                        student = (from s in dbContext.Students where s.Course == cnf.course.ToString() && s.RandomName == RandomName select s).First();
+                        student = (from s in dbContext.Students where s.Course == cnf.courseEnumName && s.RandomName == RandomName select s).First();
                     }
                     res += student.Name + " " + student.Surname + "\n";
                     //var repos = await client.Organization.Team.GetAllRepositories(team.Id);
@@ -581,7 +593,7 @@ namespace StudentsToOrganization.Controllers
                     Student student = null;
                     using(var dbContext = new GithubDataEntities())
                     {
-                        var r = from s in dbContext.Students where s.Course == cnf.course.ToString() && s.RandomName == RandomName select s;
+                        var r = from s in dbContext.Students where s.Course == cnf.courseEnumName && s.RandomName == RandomName select s;
                         student = r.First();
                     }
 
@@ -889,7 +901,7 @@ namespace StudentsToOrganization.Controllers
                 {
                     Name = student.FirstName,
                     Surname = student.Surname,
-                    Course = cnf.course.ToString(),
+                    Course = cnf.courseEnumName,
                     RandomName = RandomName,
                     Gr = student.Group,
                     Sec = student.Section,
@@ -984,7 +996,7 @@ namespace StudentsToOrganization.Controllers
 
                     var _r = from s in dbContext.Students
                             where                            
-                            s.Course == cnf.course.ToString() &&
+                            s.Course == cnf.courseEnumName &&
                             (model.Group == null || s.Gr == model.Group) &&
                             (model.Section == null || s.Sec == model.Section)
                             select s;
