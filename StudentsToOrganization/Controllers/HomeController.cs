@@ -238,7 +238,7 @@ namespace StudentsToOrganization.Controllers
         private async Task<IEnumerable<string>> GetTeamsNames()
         {
             List<string> res = new List<string>();
-            IReadOnlyList<Team> teams = null;// await client.Organization.Team.GetAll(organization);
+            IReadOnlyList<Team> teams = null;
 
             await run_with_retries(async () =>
             {
@@ -296,19 +296,16 @@ namespace StudentsToOrganization.Controllers
             {
                 contents = await client.Repository.Content.GetAllContents(organization, src_repo, src_dir);
             }, expcetion_retries);
-            //foreach (var item in await client.Repository.Content.GetAllContents(organization, src_repo, src_dir))
             foreach (var item in contents)
             {
                 if (item.Type == ContentType.Dir)
                 {
-                    //await copyRepo(src_repo, dest_repo, src_dir + "/" + item.Name, dest_dir + "/" + item.Name, indent + 3, log);
                     await copyRepo(src_repo, dest_repo, src_dir + "/" + item.Name, dest_dir + "/" + item.Name, indent + 3, log);                    
                 }
                 else
                 {
                     try
                     {
-                        //var file = await client.Repository.Content.GetAllContents(organization, src_repo, src_dir + "/" + item.Name);
                         IReadOnlyList<RepositoryContent> file = null;
                         await run_with_retries(async () =>
                         {
@@ -316,7 +313,6 @@ namespace StudentsToOrganization.Controllers
                         }, expcetion_retries);
                         writeLogPart(indent, log, "<span style='font-size:1.5em;'><span style='color:green;'>Copy</span><span style='color:gray;'> \"" + src_repo + "/" + src_dir + "/" + item.Name + "\"</span><span style='color:green;'> to </span><span style='color:gray;'>\"" + dest_repo + "/" + dest_dir + "\" </span></span>");
 
-                        //await client.Repository.Content.CreateFile(organization, dest_repo, dest_dir + "/" + item.Name, new CreateFileRequest("Created By Teacher", file.First().Content));
                         await run_with_retries(async () =>
                         {
                             await client.Repository.Content.CreateFile(organization, dest_repo, dest_dir + "/" + item.Name, new CreateFileRequest("Created By Teacher", file.First().Content));
@@ -332,7 +328,6 @@ namespace StudentsToOrganization.Controllers
 
         private async Task<List<string>> getAllReposForSection(string group_section)
         {
-            //var tmp = await client.Repository.GetAllForOrg(organization);
             IReadOnlyList<Repository> tmp = null;
             await run_with_retries(async () =>
             {
@@ -353,7 +348,6 @@ namespace StudentsToOrganization.Controllers
             else
                 return Redirect(GetOauthLoginUrl());
 
-            //var repos = await getAllReposForSection("-gr" + model.Group + model.Section);
             List<string> repos = null;
             await run_with_retries(async () =>
             {
@@ -364,7 +358,6 @@ namespace StudentsToOrganization.Controllers
             foreach (var repo in repos)
                 try
                 {
-                    //await copyRepo(model.SrcRepo, repo, model.SrcDir, model.DestDir, 0, log);
                     await copyRepo(model.SrcRepo, repo, model.SrcDir, model.DestDir, 0, log);
                 }
                 catch (Exception ex)
@@ -386,9 +379,7 @@ namespace StudentsToOrganization.Controllers
                 teams = await client.Organization.Team.GetAll(organization);
             }, expcetion_retries);
 
-
-            //var current_user_login = (await client.User.Current()).Login;
-            string current_user_login = null;
+           string current_user_login = null;
             await run_with_retries(async () =>
             {
                 current_user_login = (await client.User.Current()).Login;
@@ -399,8 +390,7 @@ namespace StudentsToOrganization.Controllers
                 if (to_remove.Contains(team.Name))
                 {
                     string RandomName = team.Name.Split('-').First();
-                   //var repos = await client.Organization.Team.GetAllRepositories(team.Id);
-                   IReadOnlyList <Repository> repos = null;
+                    IReadOnlyList <Repository> repos = null;
                     await run_with_retries(async () =>
                     {
                         repos = await client.Organization.Team.GetAllRepositories(team.Id);
@@ -409,13 +399,11 @@ namespace StudentsToOrganization.Controllers
                     foreach (var repo in repos)
                     {
                         //delete repo
-                        //await client.Repository.Delete(organization, repo.Name);
                         await run_with_retries(async () =>
                         {
                             await client.Repository.Delete(organization, repo.Name);
                         }, expcetion_retries);
                     }
-                    //var members = await client.Organization.Team.GetAllMembers(team.Id);
                     IReadOnlyList<Octokit.User> members = null;
                     await run_with_retries(async () =>
                     {
@@ -454,7 +442,6 @@ namespace StudentsToOrganization.Controllers
                     }
 
                     //delete team
-                    //await client.Organization.Team.Delete(team.Id);
                     await run_with_retries(async () =>
                     {
                         await client.Organization.Team.Delete(team.Id);
@@ -571,7 +558,6 @@ namespace StudentsToOrganization.Controllers
             if (_teams == null)
                 return "";
             string res = "";
-            //var teams = await client.Organization.Team.GetAll(organization);
             IReadOnlyList<Team> teams = null;
             await run_with_retries(async () =>
             {
@@ -582,7 +568,6 @@ namespace StudentsToOrganization.Controllers
             {
                 if (_teams.Contains(team.Name))
                 {
-                    //var repos = await client.Organization.Team.GetAllRepositories(team.Id);
                     IReadOnlyList<Repository> repos = null;
                     await run_with_retries(async () =>
                     {
@@ -618,19 +603,7 @@ namespace StudentsToOrganization.Controllers
                 return Redirect(GetOauthLoginUrl());
             string content = await GetIssuesForTeams(selectedItems);
 
-            //return File(Encoding.UTF8.GetBytes(content), "text/plain", "issues.txt");
             return File(Encoding.UTF8.GetBytes(content), "text/plain", "issues-" + cnf.courseKey + ".txt");
-
-            //var cd = new System.Net.Mime.ContentDisposition
-            //{
-            //    FileName = "issues.txt",
-            //    Inline = false
-            //};
-            //Response.AppendHeader("Content-Disposition", cd.ToString());
-
-            //byte[] res = new byte[content.Length * sizeof(char)];
-            //System.Buffer.BlockCopy(content.ToCharArray(), 0, res, 0, content.Length * sizeof(char));
-            //return File(res, System.Net.Mime.MediaTypeNames.Text.Plain);
         }
 
 
@@ -802,22 +775,12 @@ namespace StudentsToOrganization.Controllers
             
             try
             {
-                //var repositories = await client.Repository.GetAllForCurrent();
-                //IReadOnlyList<Repository> repositories = null;
-                //await run_with_retries(async () =>
-                //{
-                //    repositories = await client.Repository.GetAllForCurrent();
-                //}, expcetion_retries);
                 return View();
             }
             catch (AuthorizationException)
             {
                 return Redirect(GetOauthLoginUrl());
             }
-            //catch (Exception)
-            //{
-            //    return Redirect(GetOauthLoginUrl());
-            //}
         }
         private void FixFirstNameAndSurname(ref string FirstName, ref string Surname)
         {
@@ -981,17 +944,6 @@ namespace StudentsToOrganization.Controllers
                 List<ManageModel> res = new List<ManageModel>();
                 using (var dbContext = new GithubDataEntities())
                 {
-                    /*
-                     var r = from s in dbContext.Students
-                            where
-                            (string.IsNullOrEmpty(model.FirstName) || s.Name.ToLower().RemoveDiacritics() == model.FirstName.ToLower().RemoveDiacritics()) &&
-                            (string.IsNullOrEmpty(model.Surname) || s.Surname.ToLower().RemoveDiacritics() == model.Surname.ToLower().RemoveDiacritics()) &&
-                            s.Course == course.ToString() &&
-                            (model.Group == null || s.Gr == model.Group) &&
-                            (model.Section == null || s.Sec == model.Section)
-                            select s;
-                    */
-
                     FixFirstNameAndSurname(model);
 
                     var _r = from s in dbContext.Students
@@ -1036,61 +988,6 @@ namespace StudentsToOrganization.Controllers
                     }
                     return View("ManageRepositoriesResult", res);
                 }
-
-              // string pattern = "";
-              // if (model.FirstName != null)
-              //     pattern += model.FirstName;
-              // else
-              //     pattern += ".*";
-              // pattern += "-";
-              // if (model.Surname != null)
-              //     pattern += model.Surname;
-              // else
-              //     pattern += ".*";
-              // pattern += "-gr";
-              // if (model.Group != null)
-              //     pattern += model.Group.ToString();
-              // else
-              //     pattern += ".";
-              // if (model.Section != null)
-              //     pattern += model.Section.ToString();
-              // else
-              //     pattern += ".";
-              //
-              // pattern += "-repo";
-              //
-              // List<ManageModel> res = new List<ManageModel>();
-              //
-              // //var tmp = await client.Repository.GetAllForOrg(organization);
-              // IReadOnlyList<Repository> tmp = null;
-              // await run_with_retries(async () =>
-              // {
-              //     tmp = await client.Repository.GetAllForOrg(organization);
-              // }, expcetion_retries);
-              //
-              // foreach (var v in tmp)
-              // {
-              //     if (v.Name.Count(x => x == '-') != 3)
-              //         continue;
-              //     if (System.Text.RegularExpressions.Regex.Match(v.FullName, pattern).Success)
-              //     {
-              //         string clone_url_oauth = v.CloneUrl.Replace("https://", "https://" + Session["OAuthToken"] + "@");
-              //         var splitted = v.Name.Split('-');
-              //         var team = v.Name.Replace("-repo", "");
-              //
-              //         res.Add(new ManageModel
-              //         {
-              //             CloneUrl = clone_url_oauth,
-              //             Name = splitted[0],
-              //             Surname = splitted[1],
-              //             Group = int.Parse(splitted[2].Substring(2, 1)),
-              //             Section = int.Parse(splitted[2].Substring(3, 1)),
-              //             TeamName = team
-              //         });
-              //     }
-              // }
-              // //return View("Index");                
-              // return View("ManageRepositoriesResult", res);
             }
             catch (System.Exception ex)
             {
